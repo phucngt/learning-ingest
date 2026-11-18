@@ -1,0 +1,246 @@
+{
+  "schema_version": "1.0",
+  "package_id": "pkg-fixture",
+  "subject_id": "phap-luat-chung-khoan",
+  "session_id": "luat-2025-buoi-02",
+  "knowledge_points": [
+    {
+      "local_id": "invalid-1",
+      "title": "Điểm giả lập lỗi segment_unknown",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-999999-000"
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "invalid-2",
+      "title": "Điểm giả lập lỗi timestamp_mismatch",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-000102-000",
+          "start_ms": 200000
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "invalid-3",
+      "title": "Điểm giả lập lỗi source_id_unknown",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "slide",
+          "source_id": "slide-khong-co",
+          "pdf_page": 1
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "invalid-4",
+      "title": "Điểm giả lập lỗi page_out_of_range",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "slide",
+          "source_id": "slide-ngay-2-1",
+          "pdf_page": 9
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "invalid-5",
+      "title": "Điểm giả lập lỗi page_out_of_range",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "syllabus",
+          "source_id": "giao-trinh-luat",
+          "pdf_page": 55
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "invalid-6",
+      "title": "Điểm giả lập lỗi section_unknown",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "syllabus",
+          "source_id": "giao-trinh-luat",
+          "pdf_page": 40,
+          "section_id": "sec-khong-co"
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "invalid-7",
+      "title": "Điểm giả lập lỗi chapter_unknown",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c02",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-000102-000"
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Sai lầm Buổi 02 = Chương 2: số buổi không xác định chương."
+    },
+    {
+      "local_id": "invalid-8",
+      "title": "Điểm giả lập lỗi chapter_reason_missing",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": null,
+      "chapter_id_reason": "",
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-000102-000"
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "invalid-9",
+      "title": "Điểm giả lập lỗi existing_unknown",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": "kp-cat-9999",
+      "existing_match_reason": "Mã giả không tồn tại.",
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-000102-000"
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "invalid-10",
+      "title": "Điểm giả lập lỗi schema",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-000102-000"
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "approved",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "invalid-11",
+      "title": "Điểm giả lập lỗi schema",
+      "summary": "Dữ liệu giả lập dùng để kiểm thử; mọi quy định và con số đều là bịa.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    }
+  ]
+}

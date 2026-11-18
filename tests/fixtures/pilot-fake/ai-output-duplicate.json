@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "package_id": "pkg-fixture",
+  "subject_id": "phap-luat-chung-khoan",
+  "session_id": "luat-2025-buoi-02",
+  "knowledge_points": [
+    {
+      "local_id": "dup-001",
+      "title": "Quỹ đại chúng là gì?",
+      "summary": "Giả lập: quỹ đại chúng là quỹ chào bán chứng chỉ quỹ ra công chúng. Nội dung dùng để kiểm thử gộp tiêu đề trùng.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c05",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-003006-000"
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "dup-002",
+      "title": "quỹ đại chúng là gì",
+      "summary": "Giả lập: quỹ đại chúng là quỹ chào bán chứng chỉ quỹ ra công chúng. Nội dung dùng để kiểm thử gộp tiêu đề trùng.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c05",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "syllabus",
+          "source_id": "giao-trinh-luat",
+          "pdf_page": 80
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    }
+  ]
+}

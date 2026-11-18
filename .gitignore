@@ -1,0 +1,74 @@
+# Repo chỉ chứa code, mẫu và dữ liệu giả lập. Mọi tài liệu nội bộ thật
+# (video, phụ đề, slide, giáo trình, transcript, kết quả) để ngoài git.
+
+# Dữ liệu và kết quả
+data/
+output/
+out/
+exports/
+
+# Cache và model nhận dạng giọng nói
+.cache/
+cache/
+models/
+.hf_cache/
+huggingface/
+
+# Bí mật
+.env
+.env.*
+!.env.example
+
+# Video / âm thanh
+*.mp4
+*.m4v
+*.mkv
+*.mov
+*.avi
+*.webm
+*.m4a
+*.mp3
+*.wav
+*.aac
+*.flac
+
+# Phụ đề, transcript, slide, tài liệu nội bộ
+*.vtt
+*.srt
+transcript*.jsonl
+*.pdf
+*.pptx
+*.ppt
+*.docx
+*.doc
+*.xlsx
+giao-trinh*.md
+ai-output*.json
+knowledge-points*.json
+buoi-*-tri-thuc.md
+
+# Ngoại lệ: schema đóng gói kèm code, dữ liệu giả lập cho test, mẫu
+!src/learning_ingest/schemas/*.json
+!tests/fixtures/**
+!examples/*.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "learning-ingest/manifest.schema.json",
+  "title": "Manifest một buổi học",
+  "description": "Khai báo môn, khoá, buổi và các nguồn (video, slide, giáo trình) của một buổi. Đường dẫn tương đối tính từ thư mục chứa manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "subject_id", "course_id", "session_id", "session_label", "video"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "subject_id": { "$ref": "#/$defs/id", "description": "Mã môn, ví dụ phap-luat-chung-khoan." },
+    "subject_name": { "type": ["string", "null"] },
+    "programs": {
+      "description": "Các chứng chỉ dùng chung môn này.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" },
+      "uniqueItems": true
+    },
+    "course_id": { "$ref": "#/$defs/id" },
+    "course_name": { "type": ["string", "null"] },
+    "session_id": { "$ref": "#/$defs/id", "description": "Mã buổi học. Không liên quan tới mã chương giáo trình." },
+    "session_label": { "type": "string", "minLength": 1, "description": "Tên hiển thị, ví dụ 'Buổi 02'." },
+    "video": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/id" },
+        "title": { "type": ["string", "null"] },
+        "path": { "type": ["string", "null"], "description": "MP4 local. Cần khi chưa có phụ đề." },
+        "audio_path": { "type": ["string", "null"], "description": "File âm thanh tách sẵn, cùng mốc thời gian với video. Dùng khi MP4 không decode được." },
+        "subtitle_path": { "type": ["string", "null"], "description": "VTT/SRT có sẵn. Có thì ưu tiên, không chép lời." },
+        "sharepoint_url": { "type": ["string", "null"] },
+        "link_template": {
+          "type": ["string", "null"],
+          "description": "Mẫu link nhảy tới đúng mốc, ví dụ '{url}&t={seconds}'. Để null nếu SharePoint chưa nhảy đúng: tài liệu ghi mốc dạng chữ."
+        },
+        "clip": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "properties": {
+            "start": { "type": ["string", "number", "null"] },
+            "end": { "type": ["string", "number", "null"] }
+          }
+        }
+      }
+    },
+    "slides": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/pdfSource" }
+    },
+    "syllabus": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["source_id", "path"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/id" },
+        "title": { "type": ["string", "null"] },
+        "path": { "type": "string", "description": "Giáo trình dạng Markdown có YAML front matter." },
+        "sharepoint_url": { "type": ["string", "null"], "description": "Link bản PDF giáo trình để đối chiếu trang." },
+        "page_link_template": { "type": ["string", "null"], "description": "Ví dụ '{url}#page={page}'." },
+        "page_marker_pattern": {
+          "type": ["string", "null"],
+          "description": "Regex có đúng một nhóm bắt số trang PDF. Mặc định nhận <!-- page: N -->, <!-- pdf_page: N -->, <!-- trang N -->."
+        }
+      }
+    },
+    "related_chapter_ids": {
+      "description": "Chương giáo trình HCNS xác nhận buổi này dạy. Để trống thì công cụ tự chọn phần giáo trình theo độ trùng từ ngữ. Không suy ra từ số buổi.",
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "catalog_path": { "type": ["string", "null"], "description": "Danh mục điểm kiến thức đã có (JSON)." },
+    "transcription": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string", "description": "Model faster-whisper: tiny, base, small, medium, large-v3, hoặc đường dẫn model local." },
+        "device": { "enum": ["cpu", "cuda", "auto"] },
+        "compute_type": { "type": "string" },
+        "language": { "type": "string" },
+        "beam_size": { "type": "integer", "minimum": 1 },
+        "vad_filter": { "type": "boolean" },
+        "chunk_seconds": { "type": "integer", "minimum": 60, "description": "Chép lời theo khúc; mỗi khúc cache riêng để chạy lại tiếp từ khúc dở." },
+        "model_dir": { "type": ["string", "null"], "description": "Thư mục tải / đọc model (download_root)." },
+        "initial_prompt": { "type": ["string", "null"], "description": "Gợi ý từ vựng cho model, ví dụ tên môn và thuật ngữ." }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chunk_minutes": { "type": "integer", "minimum": 1 },
+        "max_chars_per_part": { "type": "integer", "minimum": 5000 },
+        "syllabus_max_sections": { "type": "integer", "minimum": 1 },
+        "syllabus_max_chars": { "type": "integer", "minimum": 1000 }
+      }
+    },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "markdown_filename": { "type": ["string", "null"], "description": "Mặc định suy từ session_label: 'Buổi 02' -> buoi-02-tri-thuc.md." }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "Chữ thường không dấu, số, '.', '_' hoặc '-'."
+    },
+    "pdfSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "path"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/id" },
+        "title": { "type": ["string", "null"] },
+        "path": { "type": "string" },
+        "sharepoint_url": { "type": ["string", "null"] },
+        "page_link_template": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

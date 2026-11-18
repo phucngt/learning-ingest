@@ -1,0 +1,19 @@
+{
+  "_note": "Dữ liệu giả lập cho test.",
+  "knowledge_points": [
+    {
+      "knowledge_point_id": "kp-cat-0001",
+      "title": "Điều kiện vốn khi chào bán cổ phiếu ra công chúng",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "summary": "Giả lập: vốn điều lệ đã góp tối thiểu theo Luật Mẫu."
+    },
+    {
+      "knowledge_point_id": "kp-cat-0002",
+      "title": "Khái niệm quỹ thành viên",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c05",
+      "summary": "Giả lập: quỹ có số thành viên góp vốn giới hạn."
+    }
+  ]
+}

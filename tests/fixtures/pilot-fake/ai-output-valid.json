@@ -1,0 +1,220 @@
+{
+  "schema_version": "1.0",
+  "package_id": "pkg-fixture",
+  "subject_id": "phap-luat-chung-khoan",
+  "session_id": "luat-2025-buoi-02",
+  "knowledge_points": [
+    {
+      "local_id": "fake-001",
+      "title": "Điều kiện vốn chào bán cổ phiếu",
+      "summary": "Giả lập: vốn điều lệ đã góp tối thiểu 99 tỷ đồng theo giá trị trên sổ sách kế toán. Điều kiện chào bán phải được đối chiếu với video, slide và giáo trình mẫu.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": "kp-cat-0001",
+      "existing_match_reason": "Cùng trình bày điều kiện vốn khi chào bán cổ phiếu.",
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-000102-000",
+          "start_ms": 62000,
+          "end_ms": 69800
+        },
+        {
+          "type": "slide",
+          "source_id": "slide-ngay-2-1",
+          "pdf_page": 2
+        },
+        {
+          "type": "syllabus",
+          "source_id": "giao-trinh-luat",
+          "pdf_page": 40,
+          "section_id": "sec-1-dieu-kien-chao-ban-co-phieu-ra-cong-chung"
+        }
+      ],
+      "verification_flags": [
+        {
+          "kind": "number",
+          "text": "99 tỷ đồng",
+          "sources": [
+            {
+              "type": "slide",
+              "source_id": "slide-ngay-2-1",
+              "pdf_page": 2
+            }
+          ]
+        }
+      ],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "fake-002",
+      "title": "Thời hạn xem xét hồ sơ chào bán",
+      "summary": "Giả lập: hồ sơ chào bán được nộp cho Cơ quan Mẫu. Slide ghi thời hạn xem xét 45 ngày, trong khi giáo trình ghi 30 ngày; người rà soát cần xác định nội dung đúng.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "slide",
+          "source_id": "slide-ngay-2-2",
+          "pdf_page": 1
+        },
+        {
+          "type": "syllabus",
+          "source_id": "giao-trinh-luat",
+          "pdf_page": 41
+        }
+      ],
+      "verification_flags": [
+        {
+          "kind": "deadline",
+          "text": "45 ngày và 30 ngày",
+          "sources": [
+            {
+              "type": "slide",
+              "source_id": "slide-ngay-2-2",
+              "pdf_page": 1
+            },
+            {
+              "type": "syllabus",
+              "source_id": "giao-trinh-luat",
+              "pdf_page": 41
+            }
+          ]
+        }
+      ],
+      "conflicts": [
+        {
+          "topic": "Thời hạn xem xét hồ sơ",
+          "claims": [
+            {
+              "source": {
+                "type": "slide",
+                "source_id": "slide-ngay-2-2",
+                "pdf_page": 1
+              },
+              "statement": "45 ngày"
+            },
+            {
+              "source": {
+                "type": "syllabus",
+                "source_id": "giao-trinh-luat",
+                "pdf_page": 41
+              },
+              "statement": "30 ngày"
+            }
+          ],
+          "note": "Hai nguồn giả lập khác nhau, cần đối chiếu."
+        }
+      ],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "fake-003",
+      "title": "Công bố bản cáo bạch",
+      "summary": "Giả lập: tổ chức phát hành công bố bản cáo bạch trên trang thông tin điện tử trước khi phân phối chứng khoán. Nghĩa vụ này được trình bày trong video, slide và giáo trình mẫu.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c03",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-001207-800"
+        },
+        {
+          "type": "slide",
+          "source_id": "slide-ngay-2-2",
+          "pdf_page": 2
+        },
+        {
+          "type": "syllabus",
+          "source_id": "giao-trinh-luat",
+          "pdf_page": 42
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "fake-004",
+      "title": "Khái niệm quỹ đại chúng",
+      "summary": "Giả lập: quỹ đại chúng là quỹ chào bán chứng chỉ quỹ ra công chúng. Video và giáo trình mẫu cùng trình bày khái niệm này.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": "plck-c05",
+      "chapter_id_reason": null,
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-003006-000"
+        },
+        {
+          "type": "syllabus",
+          "source_id": "giao-trinh-luat",
+          "pdf_page": 80
+        }
+      ],
+      "verification_flags": [],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    },
+    {
+      "local_id": "fake-005",
+      "title": "Bổ sung thay đổi trong hồ sơ",
+      "summary": "Giả lập: thay đổi trong hồ sơ phải được bổ sung trong thời hạn 7 ngày làm việc. Trang slide đính kèm thiếu lớp chữ nên người rà soát cần mở PDF kiểm tra; chưa xác định chương tương ứng.",
+      "subject_id": "phap-luat-chung-khoan",
+      "chapter_id": null,
+      "chapter_id_reason": "Nội dung nhắc cuối buổi chưa xác định rõ chương tương ứng.",
+      "session_id": "luat-2025-buoi-02",
+      "existing_knowledge_point_id": null,
+      "existing_match_reason": null,
+      "sources": [
+        {
+          "type": "video",
+          "source_id": "video-ngay-2",
+          "segment_id": "seg-010510-500"
+        },
+        {
+          "type": "slide",
+          "source_id": "slide-ngay-2-1",
+          "pdf_page": 3
+        }
+      ],
+      "verification_flags": [
+        {
+          "kind": "deadline",
+          "text": "7 ngày làm việc",
+          "sources": [
+            {
+              "type": "video",
+              "source_id": "video-ngay-2",
+              "segment_id": "seg-010510-500"
+            }
+          ]
+        }
+      ],
+      "conflicts": [],
+      "review_status": "pending_review",
+      "review_notes": "Dữ liệu giả lập, cần người rà soát."
+    }
+  ]
+}

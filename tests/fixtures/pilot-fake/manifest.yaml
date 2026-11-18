@@ -1,0 +1,40 @@
+# Manifest GIẢ LẬP cho test và chạy thử trọn luồng. Không trỏ tới tài liệu thật.
+schema_version: 1
+subject_id: phap-luat-chung-khoan
+subject_name: Pháp luật chứng khoán
+programs: [moi-gioi-chung-khoan, phan-tich-tai-chinh, quan-ly-quy]
+course_id: luat-2025
+course_name: Luật 2025
+session_id: luat-2025-buoi-02
+session_label: Buổi 02
+
+video:
+  source_id: video-ngay-2
+  title: Ngày 2 (giả lập)
+  path: fake-ngay-2.mp4            # không có file thật: dùng phụ đề có sẵn
+  subtitle_path: fake-ngay-2.vtt
+  sharepoint_url: https://example.sharepoint.com/sites/hcns/fake/ngay-2.mp4
+  link_template: null              # SharePoint chưa nhảy đúng mốc: ghi mốc dạng chữ
+
+slides:
+  - source_id: slide-ngay-2-1
+    title: Ngày 2_1 (giả lập)
+    path: fake-slide-1.pdf
+    sharepoint_url: https://example.sharepoint.com/sites/hcns/fake/ngay-2-1.pdf
+    page_link_template: "{url}#page={page}"
+  - source_id: slide-ngay-2-2
+    title: Ngày 2_2 (giả lập)
+    path: fake-slide-2.pdf
+    sharepoint_url: null
+
+syllabus:
+  source_id: giao-trinh-luat
+  title: Giáo trình Luật Mẫu (giả lập)
+  path: giao-trinh-fake.md
+  sharepoint_url: https://example.sharepoint.com/sites/hcns/fake/giao-trinh.pdf
+  page_link_template: "{url}#page={page}"
+
+catalog_path: catalog-fake.json
+
+review:
+  chunk_minutes: 10

@@ -1,0 +1,13 @@
+# Code và tài liệu giữ xuống dòng LF trên mọi máy (Windows có core.autocrlf).
+* text=auto eol=lf
+
+# PowerShell script đọc tốt nhất với CRLF trên Windows PowerShell 5.1.
+*.ps1 text eol=crlf
+
+# Nhị phân: không bao giờ đổi xuống dòng.
+*.pdf binary
+*.mp4 binary
+*.m4a binary
+*.wav binary
+*.png binary
+*.jpg binary

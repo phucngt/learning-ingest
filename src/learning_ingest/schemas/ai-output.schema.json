@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "learning-ingest/ai-output.schema.json",
+  "title": "Đầu ra AI: điểm kiến thức của một buổi học",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "package_id", "subject_id", "session_id", "knowledge_points"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "package_id": { "type": "string", "minLength": 1 },
+    "subject_id": { "type": "string", "minLength": 1 },
+    "session_id": { "type": "string", "minLength": 1 },
+    "knowledge_points": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/knowledgePoint" }
+    },
+    "notes": { "type": ["string", "null"] }
+  },
+  "$defs": {
+    "knowledgePoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local_id", "title", "summary", "subject_id", "chapter_id", "chapter_id_reason",
+        "session_id", "existing_knowledge_point_id", "existing_match_reason",
+        "sources", "verification_flags", "conflicts", "review_status", "review_notes"
+      ],
+      "properties": {
+        "local_id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "summary": { "type": "string", "minLength": 10 },
+        "subject_id": { "type": "string" },
+        "chapter_id": { "type": ["string", "null"] },
+        "chapter_id_reason": { "type": ["string", "null"] },
+        "session_id": { "type": "string" },
+        "existing_knowledge_point_id": { "type": ["string", "null"] },
+        "existing_match_reason": { "type": ["string", "null"] },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/source" }
+        },
+        "verification_flags": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/flag" }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/conflict" }
+        },
+        "review_status": { "const": "pending_review" },
+        "review_notes": { "type": "string" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "source_id"],
+      "properties": {
+        "type": { "enum": ["video", "slide", "syllabus"] },
+        "source_id": { "type": "string", "minLength": 1 },
+        "segment_id": { "type": "string", "pattern": "^seg-" },
+        "start_ms": { "type": "integer", "minimum": 0 },
+        "end_ms": { "type": "integer", "minimum": 0 },
+        "pdf_page": { "type": "integer", "minimum": 1 },
+        "section_id": { "type": ["string", "null"] },
+        "quote": { "type": ["string", "null"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "video" } } },
+          "then": { "required": ["segment_id"], "not": { "required": ["pdf_page"] } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "slide" } } },
+          "then": {
+            "required": ["pdf_page"],
+            "not": { "anyOf": [{ "required": ["segment_id"] }, { "required": ["section_id"] }] }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "syllabus" } } },
+          "then": { "required": ["pdf_page"], "not": { "required": ["segment_id"] } }
+        }
+      ]
+    },
+    "flag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "text"],
+      "properties": {
+        "kind": { "enum": ["number", "deadline", "legal_reference", "other"] },
+        "text": { "type": "string", "minLength": 1 },
+        "note": { "type": ["string", "null"] },
+        "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } }
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["topic", "claims"],
+      "properties": {
+        "topic": { "type": "string", "minLength": 1 },
+        "claims": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["source", "statement"],
+            "properties": {
+              "source": { "$ref": "#/$defs/source" },
+              "statement": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "note": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

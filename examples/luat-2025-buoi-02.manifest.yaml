@@ -1,0 +1,47 @@
+schema_version: 1
+subject_id: phap-luat-chung-khoan
+subject_name: Pháp luật chứng khoán
+programs: [moi-gioi-chung-khoan, phan-tich-tai-chinh, quan-ly-quy]
+course_id: luat-2025
+course_name: Luật 2025
+session_id: luat-2025-buoi-02
+session_label: Buổi 02
+
+video:
+  source_id: video-ngay-2
+  title: Ngày 2
+  path: ../data/raw/luat-2025/buoi-02/Ngày 2.mp4
+  subtitle_path: null # Điền đường dẫn VTT hoặc SRT nếu đã có phụ đề.
+  sharepoint_url: null # cần bổ sung: link SharePoint gốc
+  link_template: null
+  # clip:
+  #   start: "00:10:00"
+  #   end: "00:12:30"
+
+slides:
+  - source_id: slide-ngay-2-1
+    title: Ngày 2_1_Cô An
+    path: ../data/raw/luat-2025/buoi-02/Ngày 2_1_Cô An.pdf
+    sharepoint_url: null # cần bổ sung: link SharePoint gốc
+    page_link_template: null
+  - source_id: slide-ngay-2-2
+    title: Ngày 2_2_Cô An
+    path: ../data/raw/luat-2025/buoi-02/Ngày 2_2_Cô An.pdf
+    sharepoint_url: null # cần bổ sung: link SharePoint gốc
+    page_link_template: null
+
+syllabus:
+  source_id: giao-trinh-luat
+  title: Giáo trình Luật
+  path: ../data/raw/luat-2025/buoi-02/giao-trinh-luat.md
+  sharepoint_url: null # cần bổ sung: link SharePoint gốc của bản PDF giáo trình
+  page_link_template: null
+
+related_chapter_ids: [] # HCNS điền mã chương đã xác nhận. Không suy từ số buổi.
+
+transcription:
+  model: small
+  device: cpu
+  compute_type: int8
+  language: vi
+  chunk_seconds: 600
