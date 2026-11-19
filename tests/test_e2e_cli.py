@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 import yaml
 
 from learning_ingest.cli import main
@@ -16,7 +17,17 @@ def test_full_cli(tmp_path):
     for text in ["mốc **00:01:02**", "https://example.sharepoint.com/sites/hcns/fake/ngay-2.mp4)",
                  "#page=2", "chưa có link", "BẢN NHÁP", "Cần đối chiếu", "Các nguồn nói khác nhau"]:
         assert text in markdown
-    assert len(read_json(out / "export" / "knowledge-points.json")["knowledge_points"]) == 5
+
+    assert "Môn chuyên môn số 1: Pháp luật về chứng khoán và thị trường chứng khoán" in markdown
+    assert "Môi giới chứng khoán, Phân tích tài chính, Quản lý quỹ" in markdown
+    assert "Giáo trình Luật Mẫu" in markdown
+    assert "Giáo trình Giáo trình" not in markdown
+    exported = read_json(out / "export" / "knowledge-points.json")
+    assert len(exported["knowledge_points"]) == 5
+    assert exported["package"]["subject_name"] == "Pháp luật về chứng khoán và thị trường chứng khoán"
+    assert exported["package"]["programs"] == ["moi-gioi-chung-khoan", "phan-tich-tai-chinh", "quan-ly-quy"]
+    assert exported["package"]["subject_order"] == 1
+    assert exported["package"]["subject_id_status"] == "confirmed"
 
 
 def test_bad_manifest_exit_two(tmp_path):
@@ -27,11 +38,35 @@ def test_bad_manifest_exit_two(tmp_path):
     assert main(["extract", "--manifest", str(path), "--out", str(tmp_path / "out")]) == 2
 
 
-def test_example_manifest_ids():
-    manifest = load_manifest(Path(__file__).parents[1] / "examples" / "luat-2025-buoi-02.manifest.yaml")
+@pytest.mark.parametrize(("day", "slide_ids"), [
+    (1, ["slide-ngay-1"]),
+    (2, ["slide-ngay-2-1", "slide-ngay-2-2"]),
+])
+def test_example_manifest_ids(day, slide_ids):
+    session_id = f"luat-2025-buoi-{day:02d}"
+    path = Path(__file__).parents[1] / "examples" / f"{session_id}.manifest.yaml"
+    manifest = load_manifest(path)
     assert manifest.subject_id == "phap-luat-chung-khoan"
     assert manifest.course_id == "luat-2025"
-    assert manifest.session_id == "luat-2025-buoi-02"
-    assert manifest.video.source_id == "video-ngay-2"
-    assert [s.source_id for s in manifest.slides] == ["slide-ngay-2-1", "slide-ngay-2-2"]
+    assert manifest.session_id == session_id
+    assert manifest.video.source_id == f"video-ngay-{day}"
+    assert [s.source_id for s in manifest.slides] == slide_ids
     assert manifest.syllabus.source_id == "giao-trinh-luat"
+    assert manifest.related_chapter_ids == []
+    assert [c["chapter_id"] for c in manifest.syllabus.chapters] == [f"plck-c{i:02d}" for i in range(1, 12)]
+    assert all(c["id_status"] == "proposed" for c in manifest.syllabus.chapters)
+    assert "chào bán chứng khoán ra công chúng" in manifest.transcription.initial_prompt
+
+
+def test_subjects_cli(capsys):
+    assert main(["subjects"]) == 0
+    output = capsys.readouterr().out
+    assert "8 môn chuyên môn" in output
+    for subject_id in [
+        "phap-luat-chung-khoan", "co-ban-chung-khoan", "phan-tich-dau-tu-chung-khoan",
+        "moi-gioi-tu-van-dau-tu", "tu-van-tai-chinh-bao-lanh-phat-hanh", "phan-tich-bao-cao-tai-chinh",
+        "quan-ly-quy-va-tai-san", "chung-khoan-phai-sinh",
+    ]:
+        assert subject_id in output
+    for name, count in [("Môi giới chứng khoán", 4), ("Phân tích tài chính", 6), ("Quản lý quỹ", 7)]:
+        assert f"{name} · {count} môn" in output

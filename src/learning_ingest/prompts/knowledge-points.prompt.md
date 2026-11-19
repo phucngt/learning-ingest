@@ -6,9 +6,10 @@ Bạn hỗ trợ bộ phận Hành chính Nhân sự (HCNS) soạn tài liệu �
 
 ## Thông tin buổi học
 
-- Môn: `{{subject_id}}` ({{subject_name}}). Dùng chung cho các chứng chỉ: {{programs}}.
+- Môn: `{{subject_id}}` ({{subject_name}}). Lộ trình: {{programs}}.
 - Khoá: `{{course_id}}`. Buổi: `{{session_id}}` ({{session_label}}).
 - Video: {{video_source}}
+- Transcript: {{transcript_note}}
 - Slide:
 {{slide_sources}}
 - Giáo trình: {{syllabus_source}}
@@ -44,9 +45,10 @@ Bạn hỗ trợ bộ phận Hành chính Nhân sự (HCNS) soạn tài liệu �
 7. **Mâu thuẫn**:
    - Nếu các nguồn nói khác nhau (ví dụ slide và giáo trình ghi khác số), thêm một mục vào `conflicts`, liệt kê từng nguồn kèm nội dung nó nói.
    - **Không tự chọn bên đúng.** HCNS quyết định.
-8. `review_status` luôn là `"pending_review"`. `review_notes` ghi điều HCNS cần lưu ý; không có gì thì để `""`.
-9. `local_id` đánh số theo thứ tự `kp-001`, `kp-002`, … trong câu trả lời của bạn.
-10. **Chỉ trả về một JSON object** đúng schema bên dưới. Không bọc trong markdown, không giải thích thêm. Trường `package_id` phải là `{{package_id}}`.
+8. **Làm theo hướng dẫn ở dòng Transcript.** Đối chiếu thuật ngữ với slide và giáo trình, đồng thời giữ nguyên văn transcript trong `quote` nếu trích dẫn.
+9. `review_status` luôn là `"pending_review"`. `review_notes` ghi điều HCNS cần lưu ý; không có gì thì để `""`.
+10. `local_id` đánh số theo thứ tự `kp-001`, `kp-002`, … trong câu trả lời của bạn.
+11. **Chỉ trả về một JSON object** đúng schema bên dưới. Không bọc trong markdown, không giải thích thêm. Trường `package_id` phải là `{{package_id}}`.
 
 ## Schema đầu ra (JSON Schema)
 

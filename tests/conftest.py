@@ -58,7 +58,7 @@ def asr_manifest(tmp_path, *, declared_clip=True):
         video["clip"] = {"start": "00:10:00", "end": "00:25:00"}
     data = {
         "schema_version": 1,
-        "subject_id": "fake-subject",
+        "subject_id": "phap-luat-chung-khoan",
         "course_id": "fake-course",
         "session_id": "fake-session",
         "session_label": "Buổi giả lập",

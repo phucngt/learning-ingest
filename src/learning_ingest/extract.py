@@ -170,7 +170,8 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
         if not m.syllabus.path.exists():
             raise IngestError(f"Không thấy giáo trình: {m.syllabus.path}")
         syllabus_sha = cache.file_sha256(m.syllabus.path)
-        syllabus = parse_syllabus(m.syllabus.path, m.syllabus.source_id, m.syllabus.page_marker_pattern)
+        syllabus = parse_syllabus(m.syllabus.path, m.syllabus.source_id,
+                                  m.syllabus.page_marker_pattern, m.syllabus.chapters)
         if syllabus["subject_id"] and syllabus["subject_id"] != m.subject_id:
             warnings.append(f"Front matter giáo trình ghi subject_id={syllabus['subject_id']}, "
                             f"manifest ghi {m.subject_id}.")
@@ -181,7 +182,8 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
     elif m.related_chapter_ids:
         raise IngestError("related_chapter_ids cần khai báo syllabus.")
     write_json(out_dir / "syllabus.json", syllabus or {"source_id": None, "chapters": [], "sections": [],
-                                                       "pages_found": [], "pdf_page_count": None})
+                                                       "chapter_candidates": [], "pages_found": [],
+                                                       "pdf_page_count": None})
 
     # 4. danh mục điểm kiến thức đã có
     catalog = _load_catalog(m.catalog_path) if m.catalog_path else []

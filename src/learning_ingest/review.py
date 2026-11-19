@@ -30,7 +30,19 @@ from .manifest import Manifest
 from .timeutil import format_clock
 from .util import norm_text, resource_json, resource_text, sha256_json, write_json, write_text
 
-PROMPT_VERSION = "kp-prompt-1"
+PROMPT_VERSION = "kp-prompt-2"
+
+TRANSCRIPT_NOTES = {
+    "asr": (
+        "Transcript do máy chép lời (faster-whisper), có thể sai chính tả hoặc sai thuật ngữ "
+        "(ví dụ 'tài dính' thay cho 'tài chính', 'chào bản' thay cho 'chào bán'). "
+        "Viết title và summary bằng thuật ngữ đúng, đối chiếu slide và giáo trình. "
+        "Trường quote (nếu có) chép nguyên văn transcript, không sửa. "
+        "Nếu chỗ chép sai làm đổi nghĩa một số liệu, thời hạn hoặc điều khoản, ghi vào review_notes "
+        "và thêm verification_flags; không tự đoán con số."
+    ),
+    "subtitle": "Transcript lấy từ phụ đề có sẵn; vẫn đối chiếu thuật ngữ với slide và giáo trình.",
+}
 
 EXAMPLE = {
     "schema_version": "1.0",
@@ -72,7 +84,6 @@ class ReviewResult:
     warnings: list[str]
 
 
-# ── chọn phần giáo trình ───────────────────────────────────────────────────
 
 def _bigrams(text: str) -> set[str]:
     tokens = [t for t in norm_text(text).split() if len(t) > 1 or t.isdigit()]
@@ -122,7 +133,6 @@ def select_syllabus(syllabus: dict, related: list[str], session_text: str,
     return [s for _, s in picked], info
 
 
-# ── dựng nội dung ──────────────────────────────────────────────────────────
 
 def _transcript_windows(segments: list[dict], minutes: int) -> list[tuple[int, int, list[dict]]]:
     size = minutes * 60_000
@@ -255,6 +265,7 @@ def run_prepare_review(m: Manifest, out_dir: Path, *, max_chars: int | None = No
         "session_label": m.session_label,
         "video_source": f"`{video['source_id']}`: {video['title']}",
         "video_source_id": video["source_id"],
+        "transcript_note": TRANSCRIPT_NOTES[meta["transcript"]["origin"]],
         "slide_sources": slide_lines,
         "syllabus_source": (f"`{sy['source_id']}`: {sy['title']}"
                             + (f" (mốc trang có trong bài: {pages_found[0]}–{pages_found[-1]})" if pages_found

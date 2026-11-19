@@ -16,6 +16,8 @@
         "subject_id": { "type": "string" },
         "subject_name": { "type": ["string", "null"] },
         "programs": { "type": "array", "items": { "type": "string" } },
+        "subject_order": { "type": "integer", "minimum": 1 },
+        "subject_id_status": { "enum": ["proposed", "confirmed"] },
         "course_id": { "type": "string" },
         "course_name": { "type": ["string", "null"] },
         "session_id": { "type": "string" },

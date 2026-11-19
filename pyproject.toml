@@ -27,7 +27,7 @@ learning-ingest = "learning_ingest.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-learning_ingest = ["schemas/*.json", "prompts/*.md"]
+learning_ingest = ["schemas/*.json", "prompts/*.md", "registry/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

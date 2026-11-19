@@ -10,6 +10,7 @@ import jsonschema
 import yaml
 
 from .errors import IngestError
+from .registry import load_registry, subject
 from .timeutil import parse_timestamp
 from .util import resource_json, slugify
 
@@ -44,6 +45,7 @@ class SyllabusSource:
     sharepoint_url: str | None
     page_link_template: str | None
     page_marker_pattern: str | None
+    chapters: list[dict] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -71,8 +73,10 @@ class ReviewConfig:
 class Manifest:
     path: Path
     subject_id: str
-    subject_name: str | None
+    subject_name: str
     programs: list[str]
+    subject_order: int
+    subject_id_status: str
     course_id: str
     course_name: str | None
     session_id: str
@@ -97,6 +101,8 @@ class Manifest:
             "subject_id": self.subject_id,
             "subject_name": self.subject_name,
             "programs": self.programs,
+            "subject_order": self.subject_order,
+            "subject_id_status": self.subject_id_status,
             "course_id": self.course_id,
             "course_name": self.course_name,
             "session_id": self.session_id,
@@ -135,6 +141,18 @@ def load_manifest(path: str | Path) -> Manifest:
     path = Path(path).resolve()
     data = _load_raw(path)
     _check_schema(data, path)
+    sid = data["subject_id"]
+    canonical = subject(sid)
+    if canonical is None:
+        valid = ", ".join(item["subject_id"] for item in load_registry()["subjects"])
+        raise IngestError(f"subject_id không có trong danh mục: {sid}. Mã hợp lệ: {valid}.")
+    programs = list(canonical["programs"])
+    if "programs" in data and set(data["programs"]) != set(programs):
+        raise IngestError(f"programs của {sid} không khớp danh mục: manifest {data['programs']}, danh mục {programs}.")
+    name = data.get("subject_name")
+    if "subject_name" in data and name != canonical["name"]:
+        raise IngestError(f"subject_name của {sid} không khớp danh mục: manifest {name!r}, danh mục {canonical['name']!r}.")
+
     base = path.parent
 
     def p(value) -> Path | None:
@@ -165,7 +183,7 @@ def load_manifest(path: str | Path) -> Manifest:
     syllabus = SyllabusSource(
         source_id=sy["source_id"], title=sy.get("title") or sy["source_id"], path=p(sy["path"]),
         sharepoint_url=sy.get("sharepoint_url"), page_link_template=sy.get("page_link_template"),
-        page_marker_pattern=sy.get("page_marker_pattern"),
+        page_marker_pattern=sy.get("page_marker_pattern"), chapters=list(sy.get("chapters", [])),
     ) if sy else None
 
     ids = [video.source_id] + [s.source_id for s in slides] + ([syllabus.source_id] if syllabus else [])
@@ -177,8 +195,8 @@ def load_manifest(path: str | Path) -> Manifest:
     md_name = (data.get("export") or {}).get("markdown_filename") or f"{slugify(label)}-tri-thuc.md"
     return Manifest(
         path=path,
-        subject_id=data["subject_id"], subject_name=data.get("subject_name"),
-        programs=list(data.get("programs") or []),
+        subject_id=sid, subject_name=canonical["name"], programs=programs,
+        subject_order=canonical["order"], subject_id_status=canonical["id_status"],
         course_id=data["course_id"], course_name=data.get("course_name"),
         session_id=data["session_id"], session_label=label,
         video=video, slides=slides, syllabus=syllabus,

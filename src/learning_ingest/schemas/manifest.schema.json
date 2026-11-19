@@ -61,7 +61,22 @@
         "page_link_template": { "type": ["string", "null"], "description": "Ví dụ '{url}#page={page}'." },
         "page_marker_pattern": {
           "type": ["string", "null"],
-          "description": "Regex có đúng một nhóm bắt số trang PDF. Mặc định nhận <!-- page: N -->, <!-- pdf_page: N -->, <!-- trang N -->."
+          "description": "Regex có đúng một nhóm bắt số trang PDF. Mặc định nhận các mốc HTML và tiêu đề Trang PDF N."
+        },
+        "chapters": {
+          "type": "array",
+          "description": "Khai báo chương theo tiêu đề trong giáo trình. Danh sách có mục được ưu tiên hơn front matter.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["chapter_id", "heading_match"],
+            "properties": {
+              "chapter_id": { "$ref": "#/$defs/id" },
+              "heading_match": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "id_status": { "enum": ["proposed", "confirmed"] }
+            }
+          }
         }
       }
     },

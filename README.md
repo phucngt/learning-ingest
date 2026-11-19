@@ -4,7 +4,26 @@
 
 Công cụ nội bộ giúp HCNS chuyển video hoặc phụ đề, slide PDF và giáo trình Markdown của một buổi đào tạo thành các điểm kiến thức có nguồn để rà soát trước khi đưa vào ứng dụng ôn thi.
 
-Phạm vi thí điểm là **Luật 2025 / Buổi 02**. Môn Pháp luật chứng khoán (`phap-luat-chung-khoan`) dùng chung cho Môi giới, Phân tích tài chính và Quản lý quỹ. Mã buổi học và mã chương giáo trình độc lập. Chỉ dùng mã chương có căn cứ trong giáo trình. Tuyệt đối không suy ra Buổi 02 là Chương 2.
+Phạm vi thí điểm là **Luật 2025 / Buổi 02**. Môn Pháp luật chứng khoán (`phap-luat-chung-khoan`) dùng chung cho Môi giới, Phân tích tài chính và Quản lý quỹ. Mã buổi học và mã chương giáo trình độc lập. Dùng bảng ánh xạ chương trong manifest và đối chiếu với tiêu đề giáo trình. Tuyệt đối không suy ra Buổi 02 là Chương 2.
+
+## Danh mục môn chuyên môn và lộ trình
+
+Người học hoàn thành các môn chuyên môn theo lộ trình đã chọn để lấy chứng chỉ chuyên môn, sau đó dự **kỳ thi sát hạch cấp chứng chỉ hành nghề** khi đáp ứng điều kiện của lộ trình.
+
+| Số | Môn chuyên môn | Mã môn | Trạng thái mã | Lộ trình |
+| --- | --- | --- | --- | --- |
+| 1 | Pháp luật về chứng khoán và thị trường chứng khoán | `phap-luat-chung-khoan` | `confirmed` | MG, PTTC, QLQ |
+| 2 | Những vấn đề cơ bản về chứng khoán và thị trường chứng khoán | `co-ban-chung-khoan` | `proposed` | MG, PTTC, QLQ |
+| 3 | Phân tích và đầu tư chứng khoán | `phan-tich-dau-tu-chung-khoan` | `proposed` | MG, PTTC, QLQ |
+| 4 | Môi giới chứng khoán và tư vấn đầu tư chứng khoán | `moi-gioi-tu-van-dau-tu` | `proposed` | MG, PTTC, QLQ |
+| 5 | Tư vấn tài chính và bảo lãnh phát hành chứng khoán | `tu-van-tai-chinh-bao-lanh-phat-hanh` | `proposed` | PTTC, QLQ |
+| 6 | Phân tích báo cáo tài chính doanh nghiệp | `phan-tich-bao-cao-tai-chinh` | `proposed` | PTTC, QLQ |
+| 7 | Quản lý quỹ và tài sản | `quan-ly-quy-va-tai-san` | `proposed` | QLQ |
+| 8 | Chứng khoán phái sinh và thị trường chứng khoán phái sinh | `chung-khoan-phai-sinh` | `proposed` | Bổ sung để hành nghề nghiệp vụ phái sinh tương ứng |
+
+Trong **8 môn chuyên môn**, lộ trình Môi giới chứng khoán (MG) yêu cầu 4 môn, Phân tích tài chính (PTTC) yêu cầu 6 môn và Quản lý quỹ (QLQ) yêu cầu 7 môn. Quản lý quỹ còn có điều kiện kinh nghiệm. HCNS xác nhận các mã `proposed` trước khi app sử dụng. [Danh mục YAML](src/learning_ingest/registry/subjects.yaml).
+
+Công cụ kiểm tra `subject_id` của mọi manifest với danh mục. Có thể bỏ `subject_name` và `programs` để dùng giá trị từ danh mục. Nếu khai báo, tên môn phải khớp chính xác và tập mã lộ trình phải khớp, có thể khác thứ tự. Chạy `learning-ingest subjects` để xem mã, tên và số môn theo từng lộ trình.
 
 ## Dữ liệu và bảo mật
 
@@ -46,14 +65,15 @@ Mỗi buổi dùng một manifest YAML hoặc JSON. Đường dẫn tương đ�
 | Trường | Nội dung |
 | --- | --- |
 | `schema_version`, `subject_id`, `course_id`, `session_id`, `session_label` | Phiên bản manifest là số `1`. Khai báo mã môn, mã khóa, mã buổi và tên hiển thị. |
-| `subject_name`, `course_name`, `programs` | Tên hiển thị và các chương trình dùng chung môn. |
+| `subject_name`, `programs` | Tùy chọn. Lấy từ danh mục môn nếu bỏ trống trường, hoặc kiểm tra khớp nếu khai báo. |
+| `course_name` | Tên hiển thị của khóa. |
 | `video` | Mã nguồn, MP4 hoặc audio, phụ đề nếu có, link mở video và mẫu link theo mốc nếu đã thử. Công cụ ưu tiên phụ đề được khai báo. |
 | `slides`, `syllabus` | Danh sách slide PDF và giáo trình Markdown. Mỗi nguồn có `source_id` riêng và có thể khai báo link PDF gốc. |
 | `related_chapter_ids` | Mã chương HCNS đã xác nhận liên quan tới buổi học. Nếu để trống, gói rà soát chọn mục giáo trình theo độ trùng từ ngữ. |
 | `catalog_path` | Danh mục điểm kiến thức đã có, dùng để phát hiện nội dung có thể trùng. |
 | `transcription`, `review`, `export` | Cấu hình chép lời, giới hạn gói rà soát và tên tệp Markdown xuất. |
 
-Xem [manifest mẫu Luật 2025 / Buổi 02](examples/luat-2025-buoi-02.manifest.yaml) và [schema manifest](src/learning_ingest/schemas/manifest.schema.json). Khi đưa vào sử dụng, lưu manifest chứa đường dẫn và link nội bộ trong `data/`, rồi sửa đường dẫn tương đối theo vị trí tệp mới.
+Khi đưa vào sử dụng, lưu manifest chứa đường dẫn và link nội bộ trong `data/`, rồi sửa đường dẫn tương đối theo vị trí tệp mới. [Mẫu Buổi 01](examples/luat-2025-buoi-01.manifest.yaml), [mẫu Buổi 02](examples/luat-2025-buoi-02.manifest.yaml), [schema manifest](src/learning_ingest/schemas/manifest.schema.json).
 
 ## Chạy một buổi học
 
@@ -99,31 +119,24 @@ Mặc định, `extract` lưu cache trong `<out>/.cache`. Công cụ dùng lại
 
 ## Giáo trình Markdown
 
-Khai báo các chương trong YAML front matter. Ví dụ dưới đây minh họa cấu trúc trên dữ liệu giả lập.
+Bản chuyển từ PDF của Giáo trình Luật dùng `## Trang PDF N` trên dòng riêng để đánh dấu trang. Tiêu đề chương ở cấp `###` và các mục đánh số như `1.1.` hoặc `1.1.1.` ở cấp `####`. Manifest có thể khai báo mã chương cho bản Markdown hiện có.
 
-```markdown
----
-subject_id: phap-luat-chung-khoan
-chapters:
-  - chapter_id: plck-c03
-    title: Chương III. Chào bán chứng khoán (giả lập)
-    pdf_page_start: 40
-    pdf_page_end: 59
----
-
-<!-- page: 40 -->
-# Chương III. Chào bán chứng khoán (giả lập)
-## 1. Điều kiện
-Nội dung ở trang 40.
-
-<!-- page: 41 -->
-## 2. Hồ sơ
-Nội dung ở trang 41.
+```yaml
+syllabus:
+  source_id: giao-trinh-luat
+  path: giao-trinh-luat.md
+  chapters:
+    - chapter_id: plck-c01
+      heading_match: '^Chương\s+I\b'
+      title: Khái quát pháp luật về chứng khoán và thị trường chứng khoán
+      id_status: proposed
 ```
 
-Dùng tiêu đề khớp `title`, khai báo `heading` trong front matter hoặc gắn `{#chapter_id}` lên tiêu đề. Nếu không khai báo `chapters`, có thể gắn mã trực tiếp vào tiêu đề chương như `# Chương I. Tổng quan {#c1}`. Nếu giáo trình không có mã chương rõ ràng, trả `chapter_id: null` và giải thích trong `chapter_id_reason`.
+`heading_match` tìm trong nội dung tiêu đề, bỏ qua hoa thường. Lần khớp đầu tiên mở chương. Tiêu đề lặp trong mục lục được xử lý như tiêu đề thường. Nếu một tiêu đề khớp hai mã chương, công cụ báo lỗi. Nếu một mã không có tiêu đề khớp, công cụ cảnh báo. `syllabus.json` lưu `chapter_candidates` theo thứ tự xuất hiện, gồm tiêu đề, cấp, trang PDF và số lần gặp mã số hoặc số La Mã. HCNS có thể dùng danh sách này để lập bảng ánh xạ.
 
-Đặt `<!-- page: N -->` tại vị trí sang trang của bản PDF, hoặc khai báo `syllabus.page_marker_pattern` trong manifest. Regex cần đúng một nhóm bắt số trang. Thiếu mốc trang thì bước trích xuất cảnh báo. Khi có `pdf_page_count`, bước kiểm tra chỉ xác nhận trích dẫn nằm trong tổng số trang và vẫn cảnh báo. Nếu thiếu cả mốc lẫn tổng số trang, trích dẫn trang giáo trình sẽ bị báo lỗi.
+Khi có bảng ánh xạ trong manifest, công cụ ưu tiên bảng này và cảnh báo nếu giáo trình cũng khai báo `chapters` trong YAML front matter. Nếu manifest không có bảng ánh xạ, công cụ dùng `chapters` từ front matter, đối chiếu với `title`, `heading` hoặc mã `{#chapter_id}` trên tiêu đề. Khi cả hai bảng đều vắng, có thể gắn mã trực tiếp, ví dụ `### Chương I. Tổng quan {#c1}`. Công cụ giữ khoảng trang đã khai trong front matter và tính khoảng trang từ các mục thuộc chương cho hai cách còn lại. Nếu chưa xác định được chương của một điểm kiến thức, trả `chapter_id: null` kèm `chapter_id_reason`.
+
+Công cụ cũng hỗ trợ mốc HTML `<!-- page: N -->`. Dòng chỉ chứa mốc cập nhật số trang cho nội dung tiếp theo. Có thể dùng `syllabus.page_marker_pattern` để thay cả hai mẫu mặc định. Regex tùy chỉnh cần đúng một nhóm bắt số trang. Thiếu mốc trang thì bước trích xuất cảnh báo. Khi có `pdf_page_count`, bước kiểm tra chỉ xác nhận trích dẫn nằm trong tổng số trang và vẫn cảnh báo. Nếu thiếu cả mốc lẫn tổng số trang, trích dẫn trang giáo trình sẽ bị báo lỗi.
 
 ## Định dạng JSON AI
 
@@ -209,12 +222,14 @@ Demo chạy đủ ba lệnh với phụ đề, slide, giáo trình và JSON AI g
 
 ## Bước cần MP4 thật
 
+Công cụ giữ nguyên transcript ASR để đối chiếu nguồn theo mã đoạn và mốc thời gian. Gói rà soát hướng dẫn AI dùng thuật ngữ đúng trong tiêu đề và tóm tắt sau khi đối chiếu slide và giáo trình, chép nguyên văn khi trích dẫn và đánh dấu chỗ chép sai có thể làm đổi nghĩa số liệu, thời hạn hoặc điều khoản. HCNS kiểm tra lại các điểm này. `transcription.initial_prompt` cung cấp từ vựng chuyên ngành cho faster-whisper khi chép lời.
+
 Kiểm tra các mục sau trên tài liệu thí điểm thật.
 
 1. Khả năng PyAV giải mã âm thanh của MP4 thật.
 2. Chất lượng ASR. Đối chiếu với bản chép tay đã kiểm tra dài 2–3 phút rồi chọn `small`, `medium` hoặc `large-v3`.
 3. Thời gian CPU cần để xử lý một giờ video.
 4. Các câu có bị cắt mất hoặc lặp ở ranh giới khúc chép lời hay không.
-5. Front matter và mốc trang của giáo trình thật có khớp bản PDF hay không.
+5. Bảng ánh xạ chương và mốc trang của giáo trình Markdown có khớp bản PDF hay không.
 6. Slide thật có lớp chữ dùng được ở từng trang hay cần OCR.
 7. Link SharePoint có mở đúng mốc video và đúng trang PDF hay không. Thử trên các tệp thật bằng trình xem của người dùng trước khi cấu hình mẫu link.

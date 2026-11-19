@@ -1,0 +1,31 @@
+# Subject IDs other than phap-luat-chung-khoan are PROPOSED.
+# HCNS confirms them before the app uses them.
+schema_version: 1
+terminology:
+  subjects: "8 môn chuyên môn"          # môn kiểm tra để lấy chứng chỉ chuyên môn
+  licensing_exam: "kỳ thi sát hạch cấp chứng chỉ hành nghề"
+programs:                                # lộ trình
+  - {program_id: moi-gioi-chung-khoan, name: "Môi giới chứng khoán", required_subjects: 4}
+  - {program_id: phan-tich-tai-chinh,  name: "Phân tích tài chính",  required_subjects: 6}
+  - {program_id: quan-ly-quy,          name: "Quản lý quỹ",          required_subjects: 7, note: "Còn có điều kiện kinh nghiệm."}
+subjects:
+  - {order: 1, subject_id: phap-luat-chung-khoan, id_status: confirmed, name: "Pháp luật về chứng khoán và thị trường chứng khoán", programs: [moi-gioi-chung-khoan, phan-tich-tai-chinh, quan-ly-quy]}
+  - {order: 2, subject_id: co-ban-chung-khoan, id_status: proposed, name: "Những vấn đề cơ bản về chứng khoán và thị trường chứng khoán", programs: [moi-gioi-chung-khoan, phan-tich-tai-chinh, quan-ly-quy]}
+  - {order: 3, subject_id: phan-tich-dau-tu-chung-khoan, id_status: proposed, name: "Phân tích và đầu tư chứng khoán", programs: [moi-gioi-chung-khoan, phan-tich-tai-chinh, quan-ly-quy]}
+  - {order: 4, subject_id: moi-gioi-tu-van-dau-tu, id_status: proposed, name: "Môi giới chứng khoán và tư vấn đầu tư chứng khoán", programs: [moi-gioi-chung-khoan, phan-tich-tai-chinh, quan-ly-quy]}
+  - {order: 5, subject_id: tu-van-tai-chinh-bao-lanh-phat-hanh, id_status: proposed, name: "Tư vấn tài chính và bảo lãnh phát hành chứng khoán", programs: [phan-tich-tai-chinh, quan-ly-quy]}
+  - {order: 6, subject_id: phan-tich-bao-cao-tai-chinh, id_status: proposed, name: "Phân tích báo cáo tài chính doanh nghiệp", programs: [phan-tich-tai-chinh, quan-ly-quy]}
+  - {order: 7, subject_id: quan-ly-quy-va-tai-san, id_status: proposed, name: "Quản lý quỹ và tài sản", programs: [quan-ly-quy]}
+  - {order: 8, subject_id: chung-khoan-phai-sinh, id_status: proposed, name: "Chứng khoán phái sinh và thị trường chứng khoán phái sinh", programs: [], supplementary: "Bổ sung để hành nghề nghiệp vụ phái sinh tương ứng"}
+licensing_exams:                         # tham khảo cho app; KHÔNG dùng trong tool
+  verify_status: "cần xác nhận"
+  format: "Thi trắc nghiệm trên máy"
+  pass_rule: "Mỗi phần phải đúng từ 60% số câu"
+  exams:
+    - {program_id: moi-gioi-chung-khoan, duration_minutes: 120, parts: 2, part_minutes: 60}
+    - {program_id: phan-tich-tai-chinh,  duration_minutes: 150, parts: 2, part_minutes: 75}
+    - {program_id: quan-ly-quy,          duration_minutes: 180, parts: 2, part_minutes: 90}
+  note: "Số câu và thời lượng kiểm tra cuối khóa môn Pháp luật cần xác nhận riêng trước khi cài cấu hình đề mô phỏng."
+  sources:
+    - https://baochinhphu.vn/quy-dinh-moi-ve-chung-chi-hanh-nghe-chung-khoan-102260108161408783.htm
+    - "Thông báo số 03/2026 về thi sát hạch hành nghề (api.srtc.org.vn)"

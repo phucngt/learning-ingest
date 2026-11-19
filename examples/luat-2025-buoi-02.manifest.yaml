@@ -1,7 +1,5 @@
 schema_version: 1
 subject_id: phap-luat-chung-khoan
-subject_name: Pháp luật chứng khoán
-programs: [moi-gioi-chung-khoan, phan-tich-tai-chinh, quan-ly-quy]
 course_id: luat-2025
 course_name: Luật 2025
 session_id: luat-2025-buoi-02
@@ -37,6 +35,52 @@ syllabus:
   sharepoint_url: null # cần bổ sung: link SharePoint gốc của bản PDF giáo trình
   page_link_template: null
 
+  chapters: # Mã tạm, HCNS thay bằng mã chương của app.
+    - chapter_id: plck-c01
+      heading_match: '^Chương\s+I\b'
+      title: Khái quát pháp luật về chứng khoán và thị trường chứng khoán
+      id_status: proposed
+    - chapter_id: plck-c02
+      heading_match: '^Chương\s+II\b'
+      title: Pháp luật về công ty đại chúng
+      id_status: proposed
+    - chapter_id: plck-c03
+      heading_match: '^Chương\s+III\b'
+      title: Pháp luật về chào bán, phát hành chứng khoán và chào mua công khai
+      id_status: proposed
+    - chapter_id: plck-c04
+      heading_match: '^Chương\s+IV\b'
+      title: Pháp luật về thị trường giao dịch chứng khoán
+      id_status: proposed
+    - chapter_id: plck-c05
+      heading_match: '^Chương\s+V\b'
+      title: Pháp luật về công ty chứng khoán
+      id_status: proposed
+    - chapter_id: plck-c06
+      heading_match: '^Chương\s+VI\b'
+      title: Pháp luật về công ty quản lý quỹ đầu tư chứng khoán
+      id_status: proposed
+    - chapter_id: plck-c07
+      heading_match: '^Chương\s+VII\b'
+      title: Pháp luật về quỹ đầu tư chứng khoán, công ty đầu tư chứng khoán
+      id_status: proposed
+    - chapter_id: plck-c08
+      heading_match: '^Chương\s+VIII\b'
+      title: Pháp luật về đăng ký, lưu ký, bù trừ và thanh toán giao dịch chứng khoán
+      id_status: proposed
+    - chapter_id: plck-c09
+      heading_match: '^Chương\s+IX\b'
+      title: Pháp luật về công bố thông tin trên thị trường chứng khoán
+      id_status: proposed
+    - chapter_id: plck-c10
+      heading_match: '^Chương\s+X\b'
+      title: Quản lý nhà nước, giám sát, thanh tra và xử lý vi phạm trên thị trường chứng khoán
+      id_status: proposed
+    - chapter_id: plck-c11
+      heading_match: '^Chương\s+XI\b'
+      title: Pháp luật về giải quyết tranh chấp, khiếu nại, tố cáo và bồi thường thiệt hại trong hoạt động chứng khoán và thị trường chứng khoán
+      id_status: proposed
+
 related_chapter_ids: [] # HCNS điền mã chương đã xác nhận. Không suy từ số buổi.
 
 transcription:
@@ -45,3 +89,4 @@ transcription:
   compute_type: int8
   language: vi
   chunk_seconds: 600
+  initial_prompt: "Pháp luật chứng khoán, thị trường chứng khoán, chào bán chứng khoán ra công chúng, công ty đại chúng, báo cáo tài chính, sổ sách kế toán, chuẩn mực, bản cáo bạch, Ủy ban Chứng khoán Nhà nước, Luật Chứng khoán."

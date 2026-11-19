@@ -1,5 +1,6 @@
 """learning-ingest CLI.
 
+  learning-ingest subjects
   learning-ingest extract          --manifest M --out D [--clip-start T] [--clip-end T] [--model X] [--no-cache]
   learning-ingest prepare-review   --manifest M --out D [--max-chars N]
   learning-ingest validate-export  --input ai-output.json [--input part2.json] --out D
@@ -39,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
                                 description="Recording đào tạo -> điểm kiến thức có nguồn, chờ HCNS rà soát.")
     p.add_argument("--version", action="version", version=f"learning-ingest {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
+    sub.add_parser("subjects", help="Liệt kê 8 môn chuyên môn và các lộ trình.")
 
     e = sub.add_parser("extract", help="Trích transcript, slide theo trang, giáo trình.")
     e.add_argument("--manifest", required=True, type=Path)
@@ -59,6 +61,22 @@ def build_parser() -> argparse.ArgumentParser:
                    help="File JSON AI trả về. Gói nhiều phần: lặp lại --input cho từng phần.")
     v.add_argument("--out", required=True, type=Path, help="Thư mục làm việc đã chạy extract / prepare-review.")
     return p
+
+
+def _cmd_subjects(_args) -> int:
+    from .registry import load_registry, program_names
+
+    registry = load_registry()
+    names = program_names()
+    print(registry["terminology"]["subjects"])
+    for entry in sorted(registry["subjects"], key=lambda item: item["order"]):
+        programs = ", ".join(names[pid] for pid in entry["programs"])
+        detail = programs or entry.get("supplementary", "")
+        print(f"{entry['order']}. {entry['subject_id']} [{entry['id_status']}] · {entry['name']} · {detail}")
+    print("\nLộ trình")
+    for program in registry["programs"]:
+        print(f"- {program['name']} · {program['required_subjects']} môn")
+    return 0
 
 
 def _cmd_extract(args) -> int:
@@ -116,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     _utf8_console()
     args = build_parser().parse_args(argv)
     try:
-        return {"extract": _cmd_extract, "prepare-review": _cmd_review,
+        return {"subjects": _cmd_subjects, "extract": _cmd_extract, "prepare-review": _cmd_review,
                 "validate-export": _cmd_validate}[args.command](args)
     except IngestError as exc:
         print(f"Lỗi: {exc}", file=sys.stderr)

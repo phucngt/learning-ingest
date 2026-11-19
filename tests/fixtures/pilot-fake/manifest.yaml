@@ -1,8 +1,6 @@
 # Manifest GIẢ LẬP cho test và chạy thử trọn luồng. Không trỏ tới tài liệu thật.
 schema_version: 1
 subject_id: phap-luat-chung-khoan
-subject_name: Pháp luật chứng khoán
-programs: [moi-gioi-chung-khoan, phan-tich-tai-chinh, quan-ly-quy]
 course_id: luat-2025
 course_name: Luật 2025
 session_id: luat-2025-buoi-02

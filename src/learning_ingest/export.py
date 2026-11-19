@@ -23,6 +23,7 @@ import jsonschema
 
 from . import __version__
 from .errors import IngestError
+from .registry import program_names
 from .timeutil import format_clock
 from .util import norm_text, resource_json, write_json, write_text
 from .validate import Context, Issue, Validation, report_dict, report_markdown, validate
@@ -165,23 +166,25 @@ def build_knowledge_points(v: Validation, ctx: Context) -> tuple[list[dict], lis
 
 
 def _md_source(s: dict) -> str:
+    kind = {"video": "Video", "slide": "Slide", "syllabus": "Giáo trình"}[s["type"]]
+    title = s["title"].strip()
+    label = title if title.casefold().startswith(kind.casefold()) else f"{kind} {title}"
     if s["type"] == "video":
         where = f"mốc **{s['timestamp']}**"
         if s["link_kind"] == "timestamp":
-            return f"[Video {s['title']} · {s['timestamp']}]({s['url']}) (`{s['segment_id']}`)"
+            return f"[{label} · {s['timestamp']}]({s['url']}) (`{s['segment_id']}`)"
         if s["link_kind"] == "file":
-            return (f"[Video {s['title']}]({s['url']}), {where} (link chưa nhảy tới đúng đoạn, tua tới mốc này) "
+            return (f"[{label}]({s['url']}), {where} (link chưa nhảy tới đúng đoạn, tua tới mốc này) "
                     f"(`{s['segment_id']}`)")
-        return f"Video {s['title']}, {where} (`{s['segment_id']}`, chưa có link)"
-    kind = "Slide" if s["type"] == "slide" else "Giáo trình"
+        return f"{label}, {where} (`{s['segment_id']}`, chưa có link)"
     page = f"trang **{s['pdf_page']}**"
     extra = " ⚠ trang không có lớp chữ, mở PDF để xem" if s.get("needs_ocr") else ""
     if s["link_kind"] == "page":
-        text = f"[{kind} {s['title']} · trang {s['pdf_page']}]({s['url']})"
+        text = f"[{label} · trang {s['pdf_page']}]({s['url']})"
     elif s["link_kind"] == "file":
-        text = f"[{kind} {s['title']}]({s['url']}), {page}"
+        text = f"[{label}]({s['url']}), {page}"
     else:
-        text = f"{kind} {s['title']}, {page} (chưa có link)"
+        text = f"{label}, {page} (chưa có link)"
     if s.get("section_id"):
         text += f" (mục `{s['section_id']}`)"
     return text + extra
@@ -189,14 +192,20 @@ def _md_source(s: dict) -> str:
 
 def render_markdown(kps: list[dict], ctx: Context, warnings: list[Issue]) -> str:
     man = ctx.meta["manifest"]
+    names = program_names()
+    programs = ", ".join(names.get(pid, pid) for pid in man.get("programs") or [])
+    subject_name = man.get("subject_name") or man["subject_id"]
+    subject_order = man.get("subject_order")
+    subject_label = (f"Môn chuyên môn số {subject_order}: {subject_name}" if subject_order is not None
+                     else f"Môn chuyên môn: {subject_name}")
     lines = [
         f"# {man['session_label']}: điểm kiến thức (chờ rà soát)",
         "",
         "> **BẢN NHÁP – cần HCNS kiểm tra trước khi đưa vào app.** Nội dung do AI tóm tắt từ bài giảng, "
         "slide và giáo trình; mỗi điểm phải được đối chiếu với nguồn ghi bên dưới.",
         "",
-        f"- Môn: `{man['subject_id']}`" + (f" ({man['subject_name']})" if man.get("subject_name") else ""),
-        f"- Dùng chung cho: {', '.join(man.get('programs') or []) or '(không khai báo)'}",
+        f"- {subject_label}",
+        f"- Lộ trình: {programs or '(không có)'}",
         f"- Khoá: `{man['course_id']}` · Buổi: `{man['session_id']}` ({man['session_label']})",
         f"- Số điểm kiến thức: {len(kps)} · Trạng thái: chờ rà soát (`pending_review`)",
         f"- Cảnh báo khi kiểm tra: {len(warnings)} (xem validation-report.md)",
@@ -275,6 +284,7 @@ def run_validate_export(inputs: list[Path], out_dir: Path, log=print) -> ExportR
         "package": {
             "subject_id": man["subject_id"], "subject_name": man.get("subject_name"),
             "programs": man.get("programs") or [],
+            **{key: man[key] for key in ("subject_order", "subject_id_status") if key in man},
             "course_id": man["course_id"], "course_name": man.get("course_name"),
             "session_id": man["session_id"], "session_label": man["session_label"],
             "review_status": "pending_review",
