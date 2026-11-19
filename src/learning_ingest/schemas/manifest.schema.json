@@ -5,7 +5,13 @@
   "description": "Khai báo môn, khoá, buổi và các nguồn (video, slide, giáo trình) của một buổi. Đường dẫn tương đối tính từ thư mục chứa manifest.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "subject_id", "course_id", "session_id", "session_label", "video"],
+  "required": ["schema_version", "subject_id", "course_id", "session_id", "session_label"],
+  "anyOf": [
+    { "required": ["video"] },
+    { "required": ["slides"], "properties": { "slides": { "minItems": 1 } } },
+    { "required": ["documents"], "properties": { "documents": { "minItems": 1 } } },
+    { "required": ["syllabus"], "properties": { "syllabus": { "type": "object" } } }
+  ],
   "properties": {
     "schema_version": { "const": 1 },
     "subject_id": { "$ref": "#/$defs/id", "description": "Mã môn, ví dụ phap-luat-chung-khoan." },
@@ -47,7 +53,13 @@
     },
     "slides": {
       "type": "array",
+      "description": "Slide .pdf hoặc .pptx (nhận theo đuôi file).",
       "items": { "$ref": "#/$defs/pdfSource" }
+    },
+    "documents": {
+      "type": "array",
+      "description": "Văn bản .docx (gói tài liệu, không cần video).",
+      "items": { "$ref": "#/$defs/docSource" }
     },
     "syllabus": {
       "type": ["object", "null"],
@@ -56,7 +68,7 @@
       "properties": {
         "source_id": { "$ref": "#/$defs/id" },
         "title": { "type": ["string", "null"] },
-        "path": { "type": "string", "description": "Giáo trình dạng Markdown có YAML front matter." },
+        "path": { "type": "string", "description": "Giáo trình: Markdown có YAML front matter (.md), hoặc PDF có lớp chữ (.pdf)." },
         "sharepoint_url": { "type": ["string", "null"], "description": "Link bản PDF giáo trình để đối chiếu trang." },
         "page_link_template": { "type": ["string", "null"], "description": "Ví dụ '{url}#page={page}'." },
         "page_marker_pattern": {
@@ -125,6 +137,17 @@
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9._-]*$",
       "description": "Chữ thường không dấu, số, '.', '_' hoặc '-'."
+    },
+    "docSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "path"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/id" },
+        "title": { "type": ["string", "null"] },
+        "path": { "type": "string" },
+        "sharepoint_url": { "type": ["string", "null"] }
+      }
     },
     "pdfSource": {
       "type": "object",

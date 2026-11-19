@@ -57,7 +57,7 @@
       "additionalProperties": false,
       "required": ["type", "source_id"],
       "properties": {
-        "type": { "enum": ["video", "slide", "syllabus"] },
+        "type": { "enum": ["video", "slide", "syllabus", "document"] },
         "source_id": { "type": "string", "minLength": 1 },
         "segment_id": { "type": "string", "pattern": "^seg-" },
         "start_ms": { "type": "integer", "minimum": 0 },
@@ -81,6 +81,14 @@
         {
           "if": { "properties": { "type": { "const": "syllabus" } } },
           "then": { "required": ["pdf_page"], "not": { "required": ["segment_id"] } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "document" } } },
+          "then": {
+            "required": ["section_id"],
+            "properties": { "section_id": { "type": "string", "minLength": 1 } },
+            "not": { "anyOf": [{ "required": ["pdf_page"] }, { "required": ["segment_id"] }] }
+          }
         }
       ]
     },

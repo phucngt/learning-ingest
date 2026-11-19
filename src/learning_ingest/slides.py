@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .errors import IngestError
+from .errors import IngestError, MissingDependency
 
 EXTRACTOR_VERSION = "pypdf-text-1"
 MIN_TEXT_CHARS = 20
@@ -66,3 +66,72 @@ def extract_pdf(path: Path, source_id: str) -> dict:
     except PdfReadError as exc:
         raise IngestError(f"Slide {source_id} ({path}) không đọc được: {exc}") from exc
     return {"source_id": source_id, "page_count": len(pages), "extractor": EXTRACTOR_VERSION, "pages": pages}
+
+
+PPTX_EXTRACTOR_VERSION = "python-pptx-text-1"
+
+
+def extract_pptx(path: Path, source_id: str) -> dict:
+    """Slide PowerPoint -> cùng hình dạng với extract_pdf (mỗi slide một "trang")."""
+    try:
+        import pptx
+        from pptx.shapes.group import GroupShape
+    except ImportError:
+        raise MissingDependency(
+            "Chưa cài python-pptx/python-docx. Cài: pip install -e \".[office]\"") from None
+    if not Path(path).exists():
+        raise IngestError(f"Không thấy slide {source_id}: {path}")
+    try:
+        prs = pptx.Presentation(str(path))
+    except Exception as exc:
+        raise IngestError(f"Slide {source_id} ({path}) không đọc được: {type(exc).__name__}: {exc}") from exc
+
+    def position(shape):
+        return (shape.top or 0, shape.left or 0)
+
+    def shape_lines(shapes, skip_id) -> list[str]:
+        lines: list[str] = []
+        for shape in sorted(shapes, key=position):
+            if shape.shape_id == skip_id and skip_id is not None:
+                continue
+            if isinstance(shape, GroupShape):
+                lines += shape_lines(shape.shapes, None)
+            elif getattr(shape, "has_table", False) and shape.has_table:
+                for row in shape.table.rows:
+                    cells, seen = [], set()
+                    for cell in row.cells:
+                        if id(cell._tc) in seen:
+                            continue
+                        seen.add(id(cell._tc))
+                        text = " ".join(cell.text.split())
+                        if text:
+                            cells.append(text)
+                    if cells:
+                        lines.append(" | ".join(cells))
+            elif getattr(shape, "has_text_frame", False) and shape.has_text_frame:
+                lines.append(shape.text_frame.text)
+        return lines
+
+    pages = []
+    for number, slide in enumerate(prs.slides, start=1):
+        title_shape = slide.shapes.title
+        parts = []
+        if title_shape is not None and title_shape.has_text_frame and title_shape.text_frame.text.strip():
+            parts.append(title_shape.text_frame.text)
+        parts += shape_lines(slide.shapes, title_shape.shape_id if title_shape is not None else None)
+        body_chars = len(re.sub(r"\s", "", _clean("\n".join(parts))))   # chưa tính ghi chú người trình bày
+        if slide.has_notes_slide and slide.notes_slide.notes_text_frame is not None:
+            notes = " ".join(slide.notes_slide.notes_text_frame.text.split())
+            if notes:
+                parts.append(f"Ghi chú: {notes}")
+        text = _clean("\n".join(parts))
+        chars = body_chars
+        needs_ocr = chars < MIN_TEXT_CHARS
+        hidden = slide._element.get("show") == "0"
+        note = ("slide chỉ có hình" if chars == 0 else
+                "rất ít chữ, có thể là hình" if needs_ocr else None)
+        if hidden:
+            note = "slide ẩn" if note is None else f"slide ẩn; {note}"
+        pages.append({"source_id": source_id, "pdf_page": number, "text": text, "char_count": chars,
+                      "needs_ocr": needs_ocr, "note": note})
+    return {"source_id": source_id, "page_count": len(pages), "extractor": PPTX_EXTRACTOR_VERSION, "pages": pages}

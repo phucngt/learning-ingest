@@ -99,12 +99,62 @@ def _manifest_chapters(chapters: list[dict]) -> tuple[list[dict], dict[str, re.P
     return definitions, patterns
 
 
+_PDF_CHAPTER_LINE = re.compile(r"^(Chương|CHƯƠNG|Chuong|CHUONG)\s+([IVXLC]+|\d+)\b")
+SYLLABUS_PDF_MIN_CHARS = 20
+# Dòng mục lục: dấu chấm dẫn, hoặc kết thúc bằng số trang.
+_TOC_LIKE = re.compile(r"\.{3,}|…{2,}|\s\d+\s*$")
+
+
+def _norm_line(line: str) -> str:
+    return " ".join(line.split()).casefold()
+
+
+def syllabus_pdf_to_markdown(path: Path) -> tuple[str, list[str]]:
+    """Giáo trình PDF có lớp chữ -> Markdown "## Trang PDF N" + nội dung từng trang.
+    Dòng bắt đầu bằng "Chương <số La Mã hoặc số>" được nâng thành tiêu đề "### "
+    để syllabus.chapters.heading_match khớp được. Trả về (markdown, cảnh báo)."""
+    from .slides import extract_pdf
+    doc = extract_pdf(Path(path), "giao-trinh")
+    pages = doc["pages"]
+    low = [p["pdf_page"] for p in pages if p["char_count"] < SYLLABUS_PDF_MIN_CHARS]
+    if not pages or len(low) * 2 > len(pages):
+        raise IngestError(f"Giáo trình PDF {path} không có lớp chữ (bản scan). "
+                          "Cần OCR và cung cấp bản .md có mốc trang.")
+    # Dòng lặp ở >= 3 trang (đầu / chân trang chạy) không được nâng thành tiêu đề.
+    seen_on: Counter[str] = Counter()
+    for p in pages:
+        seen_on.update({_norm_line(x) for x in p["text"].split("\n") if x.strip()})
+    out = []
+    for p in pages:
+        out += [f"## Trang PDF {p['pdf_page']}", ""]
+        for line in p["text"].split("\n"):
+            promote = (_PDF_CHAPTER_LINE.match(line.strip()) and not _TOC_LIKE.search(line.strip())
+                       and len(line.strip()) <= 120 and seen_on[_norm_line(line)] < 3)
+            out.append(f"### {line.strip()}" if promote else line)
+        out.append("")
+    warnings = [f"Giáo trình PDF: {len(low)} trang thiếu lớp chữ, cần rà/OCR: {low}"] if low else []
+    return "\n".join(out), warnings
+
+
 def parse_syllabus(path: Path, source_id: str, page_marker_pattern: str | None = None,
                    chapters: list[dict] | None = None) -> dict:
-    try:
-        text = Path(path).read_text(encoding="utf-8-sig")
-    except FileNotFoundError:
-        raise IngestError(f"Không thấy giáo trình: {path}") from None
+    extra_warnings: list[str] = []
+    if Path(path).suffix.lower() == ".pdf":
+        if not Path(path).exists():
+            raise IngestError(f"Không thấy giáo trình: {path}")
+        text, extra_warnings = syllabus_pdf_to_markdown(path)
+    else:
+        try:
+            text = Path(path).read_text(encoding="utf-8-sig")
+        except FileNotFoundError:
+            raise IngestError(f"Không thấy giáo trình: {path}") from None
+    result = _parse_syllabus_text(text, source_id, page_marker_pattern, chapters)
+    result["warnings"] = extra_warnings + result["warnings"]
+    return result
+
+
+def _parse_syllabus_text(text: str, source_id: str, page_marker_pattern: str | None = None,
+                         chapters: list[dict] | None = None) -> dict:
     fm, body = split_front_matter(text)
     warnings = []
     definitions, heading_patterns = _manifest_chapters(chapters or [])

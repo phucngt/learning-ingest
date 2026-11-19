@@ -1,9 +1,12 @@
 """Lệnh extract: manifest -> transcript, slide theo trang, giáo trình, danh mục.
 
 Kết quả trong --out:
-  transcript.vtt, transcript.jsonl   segment_id, start_ms, end_ms, text
-  slides.jsonl                       mỗi dòng một trang: source_id, pdf_page, text, needs_ocr
-  slides-index.json                  số trang, trang cần rà/OCR, theo từng slide
+  transcript.vtt, transcript.jsonl   segment_id, start_ms, end_ms, text (gói không có video: chỉ
+                                     transcript.jsonl rỗng, không có .vtt)
+  slides.jsonl                       mỗi dòng một trang (slide .pptx: một slide): source_id, pdf_page, text, needs_ocr
+  slides-index.json                  số trang, trang cần rà/OCR, đơn vị (page|slide), theo từng slide
+  documents.jsonl                    văn bản .docx: mỗi dòng một mục (section_id, heading, text)
+  documents-index.json               tiêu đề và số mục theo từng văn bản
   syllabus.json                      chương, mục, mốc trang của giáo trình
   catalog.json                       danh mục điểm kiến thức đã có (nếu khai báo)
   extract-manifest.json              manifest đã chuẩn hoá, hash đầu vào, extract_id
@@ -23,7 +26,8 @@ from .asr import FasterWhisperTranscriber, Transcriber, plan_chunks
 from .cache import Cache
 from .errors import IngestError
 from .manifest import Manifest
-from .slides import EXTRACTOR_VERSION, extract_pdf
+from .documents import DOCX_EXTRACTOR_VERSION, extract_docx
+from .slides import EXTRACTOR_VERSION, PPTX_EXTRACTOR_VERSION, extract_pdf, extract_pptx
 from .syllabus import parse_syllabus
 from .transcript import Segment, build_segments, clip_cues, read_subtitles, write_transcript
 from .util import read_json, sha256_json, write_json, write_jsonl
@@ -35,7 +39,7 @@ SYLLABUS_PARSER_VERSION = "md-1"
 class ExtractResult:
     out_dir: Path
     segments: int
-    transcript_origin: str
+    transcript_origin: str | None
     slide_pages: int
     pages_needing_ocr: int
     syllabus_sections: int
@@ -43,6 +47,8 @@ class ExtractResult:
     cache: dict
     warnings: list[str] = field(default_factory=list)
     asr_chunks_run: int = 0
+    document_sections: dict = field(default_factory=dict)    # source_id -> số mục
+    document_heading_modes: dict = field(default_factory=dict)    # source_id -> styles|bold|none
 
 
 def _load_catalog(path: Path) -> list[dict]:
@@ -130,18 +136,25 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     cache = Cache(cache_dir or out_dir / ".cache", enabled=use_cache)
-    clip = (clip_start_ms if clip_start_ms is not None else m.video.clip_start_ms,
-            clip_end_ms if clip_end_ms is not None else m.video.clip_end_ms)
+    v = m.video
+    clip = (clip_start_ms if clip_start_ms is not None else (v.clip_start_ms if v else None),
+            clip_end_ms if clip_end_ms is not None else (v.clip_end_ms if v else None))
     if clip[0] is not None and clip[1] is not None and clip[1] <= clip[0]:
         raise IngestError("Đoạn cắt thử: điểm kết thúc phải sau điểm bắt đầu.")
 
     # 1. transcript
-    segments, t_info, warnings, ran = _transcript(m, cache, transcriber, clip, log)
-    if not segments:
-        raise IngestError("Không có segment nào sau khi chép lời / đọc phụ đề.")
-    write_transcript(out_dir, segments, m.video.source_id)
-    t_info.update(segments=len(segments), clip={"start_ms": clip[0], "end_ms": clip[1]} if any(
-        x is not None for x in clip) else None, first_ms=segments[0].start_ms, last_ms=segments[-1].end_ms)
+    if v is not None:
+        segments, t_info, warnings, ran = _transcript(m, cache, transcriber, clip, log)
+        if not segments:
+            raise IngestError("Không có segment nào sau khi chép lời / đọc phụ đề.")
+        write_transcript(out_dir, segments, v.source_id)
+        t_info.update(segments=len(segments), clip={"start_ms": clip[0], "end_ms": clip[1]} if any(
+            x is not None for x in clip) else None, first_ms=segments[0].start_ms, last_ms=segments[-1].end_ms)
+    else:       # gói tài liệu: không có video, không có transcript
+        segments, warnings, ran = [], [], 0
+        t_info = {"origin": None, "segments": 0, "clip": None, "first_ms": None, "last_ms": None}
+        write_jsonl(out_dir / "transcript.jsonl", [])
+        (out_dir / "transcript.vtt").unlink(missing_ok=True)
 
     # 2. slide
     slide_rows, slide_index, inputs_slides = [], {}, {}
@@ -149,19 +162,43 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
         if not s.path.exists():
             raise IngestError(f"Không thấy slide {s.source_id}: {s.path}")
         sha = cache.file_sha256(s.path)
-        key = cache.key("pdf", sha, s.source_id, EXTRACTOR_VERSION)
-        doc = cache.get("pdf", key)
+        if s.path.suffix.lower() == ".pptx":
+            kind, version, extractor, unit = "pptx", PPTX_EXTRACTOR_VERSION, extract_pptx, "slide"
+        else:
+            kind, version, extractor, unit = "pdf", EXTRACTOR_VERSION, extract_pdf, "page"
+        key = cache.key(kind, sha, s.source_id, version)
+        doc = cache.get(kind, key)
         if doc is None:
-            doc = extract_pdf(s.path, s.source_id)
-            cache.put("pdf", key, doc)
+            doc = extractor(s.path, s.source_id)
+            cache.put(kind, key, doc)
         slide_rows += doc["pages"]
         ocr = [p["pdf_page"] for p in doc["pages"] if p["needs_ocr"]]
-        slide_index[s.source_id] = {"title": s.title, "page_count": doc["page_count"], "pages_needing_ocr": ocr}
+        slide_index[s.source_id] = {"title": s.title, "page_count": doc["page_count"], "pages_needing_ocr": ocr,
+                                    "unit": unit}
         inputs_slides[s.source_id] = sha
         if ocr:
-            warnings.append(f"{s.source_id}: {len(ocr)} trang thiếu lớp chữ, cần rà/OCR: {ocr}")
+            what = "slide thiếu chữ" if unit == "slide" else "trang thiếu lớp chữ"
+            warnings.append(f"{s.source_id}: {len(ocr)} {what}, cần rà/OCR: {ocr}")
     write_jsonl(out_dir / "slides.jsonl", slide_rows)
     write_json(out_dir / "slides-index.json", slide_index)
+
+    # 2b. văn bản .docx
+    doc_rows, doc_index, inputs_docs = [], {}, {}
+    for d in m.documents:
+        if not d.path.exists():
+            raise IngestError(f"Không thấy văn bản {d.source_id}: {d.path}")
+        sha = cache.file_sha256(d.path)
+        key = cache.key("docx", sha, d.source_id, DOCX_EXTRACTOR_VERSION)
+        doc = cache.get("docx", key)
+        if doc is None:
+            doc = extract_docx(d.path, d.source_id)
+            cache.put("docx", key, doc)
+        doc_rows += doc["sections"]
+        doc_index[d.source_id] = {"title": d.title, "section_count": doc["section_count"],
+                                  "heading_mode": doc.get("heading_mode")}
+        inputs_docs[d.source_id] = sha
+    write_jsonl(out_dir / "documents.jsonl", doc_rows)
+    write_json(out_dir / "documents-index.json", doc_index)
 
     # 3. giáo trình
     syllabus = None
@@ -189,12 +226,15 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
     catalog = _load_catalog(m.catalog_path) if m.catalog_path else []
     write_json(out_dir / "catalog.json", {"knowledge_points": catalog})
 
-    transcript_rows = [s.to_row(m.video.source_id) for s in segments]
-    extract_id = "ext-" + sha256_json({
+    hashed = {
         "manifest": m.public_dict() | {"manifest_path": None},
-        "transcript": transcript_rows, "slides": slide_rows,
-        "syllabus": syllabus, "catalog": catalog,
-    })[:16]
+        "slides": slide_rows, "syllabus": syllabus, "catalog": catalog,
+    }
+    if v is not None:
+        hashed["transcript"] = [s.to_row(v.source_id) for s in segments]
+    if doc_rows:
+        hashed["documents"] = doc_rows
+    extract_id = "ext-" + sha256_json(hashed)[:16]
     write_json(out_dir / "extract-manifest.json", {
         "tool": "learning-ingest",
         "version": __version__,
@@ -203,11 +243,13 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
         "manifest": m.public_dict(),
         "inputs": {
             "slides": inputs_slides,
+            **({"documents": inputs_docs} if inputs_docs else {}),
             "syllabus": syllabus_sha,
             "catalog": cache.file_sha256(m.catalog_path) if m.catalog_path else None,
         },
         "transcript": t_info,
         "slides": slide_index,
+        "documents": doc_index,
         "syllabus": None if syllabus is None else {
             "chapters": len(syllabus["chapters"]), "sections": len(syllabus["sections"]),
             "pages_found": len(syllabus["pages_found"]),
@@ -221,6 +263,8 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
         slide_pages=len(slide_rows), pages_needing_ocr=sum(len(v["pages_needing_ocr"]) for v in slide_index.values()),
         syllabus_sections=len(syllabus["sections"]) if syllabus else 0, extract_id=extract_id,
         cache=cache.stats(), warnings=warnings, asr_chunks_run=ran,
+        document_sections={sid: info["section_count"] for sid, info in doc_index.items()},
+        document_heading_modes={sid: info["heading_mode"] for sid, info in doc_index.items()},
     )
 
 
@@ -232,11 +276,14 @@ def load_extracted(out_dir: Path) -> dict:
         raise IngestError(f"Chưa có {meta_path}. Chạy 'extract' với cùng --out trước.")
     from .util import read_jsonl
     meta = read_json(meta_path)
+    docs_path, docs_index_path = out_dir / "documents.jsonl", out_dir / "documents-index.json"
     return {
         "meta": meta,
         "segments": read_jsonl(out_dir / "transcript.jsonl"),
         "slides": read_jsonl(out_dir / "slides.jsonl"),
         "slides_index": read_json(out_dir / "slides-index.json"),
+        "documents": read_jsonl(docs_path) if docs_path.exists() else [],
+        "documents_index": read_json(docs_index_path) if docs_index_path.exists() else {},
         "syllabus": read_json(out_dir / "syllabus.json"),
         "catalog": read_json(out_dir / "catalog.json")["knowledge_points"],
     }

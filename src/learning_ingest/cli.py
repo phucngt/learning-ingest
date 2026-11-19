@@ -88,9 +88,17 @@ def _cmd_extract(args) -> int:
     res = run_extract(m, args.out, args.cache_dir, clip_start_ms=args.clip_start, clip_end_ms=args.clip_end,
                       use_cache=not args.no_cache)
     print(f"Đã trích vào {res.out_dir}")
-    print(f"  transcript: {res.segments} segment (nguồn: {'phụ đề' if res.transcript_origin == 'subtitle' else 'faster-whisper'}"
-          + (f", chép mới {res.asr_chunks_run} khúc" if res.transcript_origin == "asr" else "") + ")")
+    if res.transcript_origin is None:
+        print("  Transcript: không có video (gói tài liệu)")
+    else:
+        print(f"  transcript: {res.segments} segment (nguồn: {'phụ đề' if res.transcript_origin == 'subtitle' else 'faster-whisper'}"
+              + (f", chép mới {res.asr_chunks_run} khúc" if res.transcript_origin == "asr" else "") + ")")
     print(f"  slide: {res.slide_pages} trang, {res.pages_needing_ocr} trang cần rà/OCR")
+    if res.document_sections:
+        modes = {"styles": "tiêu đề theo style", "bold": "tiêu đề theo chữ đậm", "none": "không nhận ra tiêu đề"}
+        print("  văn bản: " + ", ".join(
+            f"{sid} {n} mục ({modes.get(res.document_heading_modes.get(sid), '?')})"
+            for sid, n in res.document_sections.items()))
     print(f"  giáo trình: {res.syllabus_sections} mục")
     print(f"  cache: {res.cache}")
     print(f"  extract_id: {res.extract_id}")

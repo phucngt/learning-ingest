@@ -1,0 +1,27 @@
+# Manifest GIẢ LẬP cho gói tài liệu (không có video). Không trỏ tới tài liệu thật.
+schema_version: 1
+subject_id: phap-luat-chung-khoan
+course_id: fake-course
+session_id: fake-tai-lieu-01
+session_label: "Tài liệu · Giả lập"
+
+slides:
+  - source_id: slide-pptx-gia-lap
+    title: Slide PowerPoint (giả lập)
+    path: fake-slides.pptx
+
+documents:
+  - source_id: van-ban-gia-lap
+    title: Quy chế (giả lập)
+    path: fake-van-ban.docx
+    sharepoint_url: https://example.sharepoint.com/sites/hcns/fake/van-ban.docx
+
+syllabus:
+  source_id: giao-trinh-pdf-gia-lap
+  title: Giáo trình PDF (giả lập)
+  path: fake-giao-trinh.pdf
+  chapters:
+    - chapter_id: fake-c01
+      heading_match: 'Chuong\s+I\b'
+    - chapter_id: fake-c02
+      heading_match: 'Chuong\s+II\b'

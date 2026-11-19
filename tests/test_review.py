@@ -5,7 +5,7 @@ from conftest import FakeTranscriber, asr_manifest, read_json
 
 def test_prepare_review_subtitle_note(prepared):
     review = prepared / "review"
-    assert read_json(review / "review-manifest.json")["prompt_version"] == "kp-prompt-2"
+    assert read_json(review / "review-manifest.json")["prompt_version"] == "kp-prompt-3"
     assert (
         "- Transcript: Transcript lấy từ phụ đề có sẵn; vẫn đối chiếu thuật ngữ với slide và giáo trình."
         in (review / "package.md").read_text(encoding="utf-8")

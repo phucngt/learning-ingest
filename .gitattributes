@@ -6,6 +6,8 @@
 
 # Nhị phân: không bao giờ đổi xuống dòng.
 *.pdf binary
+*.pptx binary
+*.docx binary
 *.mp4 binary
 *.m4a binary
 *.wav binary

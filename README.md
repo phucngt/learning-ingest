@@ -117,6 +117,24 @@ Thêm `--clip-start 00:10:00 --clip-end 00:12:30` vào lệnh `extract` và dùn
 
 Mặc định, `extract` lưu cache trong `<out>/.cache`. Công cụ dùng lại kết quả trích slide và từng khúc chép lời đã hoàn thành nếu dữ liệu và cấu hình tương ứng vẫn khớp. Sau khi dừng giữa chừng, chạy lại cùng lệnh với cùng cache để tiếp tục từ khúc chưa xong. Dùng `--cache-dir` để chọn thư mục cache và `--no-cache` để chạy lại mà không dùng cache.
 
+## Gói tài liệu (không có video)
+
+Manifest không cần `video` nếu có ít nhất một trong: `slides`, `documents`, `syllabus`. Khi đó `extract` bỏ qua transcript (ghi `transcript.jsonl` rỗng, không có `.vtt`) và gói review không có phần transcript.
+
+- `slides[].path`: `.pdf` (theo trang) hoặc `.pptx` (theo slide; nguồn trích vẫn dùng `pdf_page` = số thứ tự slide, nhãn hiển thị "slide N"). Slide ẩn vẫn được trích, ghi chú của người trình bày được thêm vào cuối dưới dạng "Ghi chú: ...".
+- `documents[]`: văn bản `.docx` (`source_id`, `title`, `path`, `sharepoint_url`). Tách mục theo style Title / Heading N; chữ trước tiêu đề đầu tiên thành mục "(Mở đầu)". AI trích nguồn bằng `{"type": "document", "source_id": ..., "section_id": ...}`; mã mục không đúng báo lỗi `section_unknown`.
+- `syllabus.path`: `.md` (như trước) hoặc `.pdf` có lớp chữ. Dòng bắt đầu bằng "Chương <số>" được nâng thành tiêu đề để `chapters[].heading_match` khớp; PDF scan (hơn một nửa số trang không có chữ) bị từ chối, cần OCR rồi dùng bản `.md` có mốc trang.
+- `.pptx` và `.docx` cần thư viện tuỳ chọn: `pip install -e ".[office]"` (python-pptx, python-docx). Thiếu thư viện thì lệnh `extract` thoát với mã 3.
+
+Quy ước `session_id` / `session_label` cho gói không có video:
+
+| Loại gói | `session_id` | `session_label` |
+| --- | --- | --- |
+| Chương giáo trình | `<course>-giao-trinh-cNN` | `Giáo trình · Chương X` |
+| Tài liệu | `<course>-tai-lieu-<slug>` | `Tài liệu · <tên>` |
+
+`session_id` đi vào `knowledge_point_id` (cùng môn, buổi và tiêu đề cho cùng ID), nên không được đổi sau khi đã dùng.
+
 ## Giáo trình Markdown
 
 Bản chuyển từ PDF của Giáo trình Luật dùng `## Trang PDF N` trên dòng riêng để đánh dấu trang. Tiêu đề chương ở cấp `###` và các mục đánh số như `1.1.` hoặc `1.1.1.` ở cấp `####`. Manifest có thể khai báo mã chương cho bản Markdown hiện có.

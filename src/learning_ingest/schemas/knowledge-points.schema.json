@@ -102,10 +102,10 @@
       "additionalProperties": false,
       "required": ["type", "source_id", "title", "label", "url", "link_kind"],
       "properties": {
-        "type": { "enum": ["video", "slide", "syllabus"] },
+        "type": { "enum": ["video", "slide", "syllabus", "document"] },
         "source_id": { "type": "string" },
         "title": { "type": "string" },
-        "label": { "type": "string", "description": "Dòng hiển thị, ví dụ 'Ngày 2 · 00:12:03' hoặc 'Ngày 2_1 · trang 5'." },
+        "label": { "type": "string", "description": "Dòng hiển thị, ví dụ 'Ngày 2 · 00:12:03', 'Ngày 2_1 · trang 5', 'Bài trình bày · slide 3' hoặc 'Quy chế · mục Điều 1'." },
         "url": { "type": ["string", "null"] },
         "link_kind": {
           "enum": ["timestamp", "page", "file", "none"],
@@ -118,6 +118,7 @@
         "excerpt": { "type": "string" },
         "pdf_page": { "type": "integer" },
         "section_id": { "type": ["string", "null"] },
+        "heading": { "type": "string", "description": "Tiêu đề mục của văn bản .docx (chỉ type = document)." },
         "needs_ocr": { "type": "boolean" },
         "quote": { "type": ["string", "null"] }
       }

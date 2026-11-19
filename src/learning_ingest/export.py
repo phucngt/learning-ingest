@@ -60,8 +60,9 @@ class _Resolver:
     def __init__(self, ctx: Context):
         man = ctx.meta["manifest"]
         self.ctx = ctx
-        self.video = man["video"]
+        self.video = man.get("video")
         self.slides = {s["source_id"]: s for s in man["slides"]}
+        self.documents = {d["source_id"]: d for d in man.get("documents") or []}
         self.syllabus = man.get("syllabus") or {}
 
     def __call__(self, src: dict) -> dict:
@@ -81,6 +82,14 @@ class _Resolver:
             out |= {"title": self.video.get("title") or sid, "label": f"{self.video.get('title') or sid} · {stamp}",
                     "url": link, "link_kind": link_kind, "segment_id": src["segment_id"],
                     "start_ms": start, "end_ms": end, "timestamp": stamp, "excerpt": excerpt}
+        elif kind == "document":
+            doc = self.documents[sid]
+            title = doc.get("title") or sid
+            heading = next(d["heading"] for d in self.ctx.document_rows
+                           if d["source_id"] == sid and d["section_id"] == src["section_id"])
+            url = doc.get("sharepoint_url")
+            out |= {"title": title, "label": f"{title} · mục {heading}", "url": url or None,
+                    "link_kind": "file" if url else "none", "section_id": src["section_id"], "heading": heading}
         else:
             meta = self.slides[sid] if kind == "slide" else self.syllabus
             page = src["pdf_page"]
@@ -90,7 +99,8 @@ class _Resolver:
             else:
                 link, link_kind = url, ("file" if url else "none")
             title = meta.get("title") or sid
-            out |= {"title": title, "label": f"{title} · trang {page}", "url": link, "link_kind": link_kind,
+            unit = "slide" if kind == "slide" and self.ctx.slides[sid].get("unit") == "slide" else "trang"
+            out |= {"title": title, "label": f"{title} · {unit} {page}", "url": link, "link_kind": link_kind,
                     "pdf_page": page}
             if kind == "slide":
                 out["needs_ocr"] = page in self.ctx.slides[sid]["needs_ocr"]
@@ -166,7 +176,7 @@ def build_knowledge_points(v: Validation, ctx: Context) -> tuple[list[dict], lis
 
 
 def _md_source(s: dict) -> str:
-    kind = {"video": "Video", "slide": "Slide", "syllabus": "Giáo trình"}[s["type"]]
+    kind = {"video": "Video", "slide": "Slide", "syllabus": "Giáo trình", "document": "Văn bản"}[s["type"]]
     title = s["title"].strip()
     label = title if title.casefold().startswith(kind.casefold()) else f"{kind} {title}"
     if s["type"] == "video":
@@ -177,10 +187,15 @@ def _md_source(s: dict) -> str:
             return (f"[{label}]({s['url']}), {where} (link chưa nhảy tới đúng đoạn, tua tới mốc này) "
                     f"(`{s['segment_id']}`)")
         return f"{label}, {where} (`{s['segment_id']}`, chưa có link)"
-    page = f"trang **{s['pdf_page']}**"
-    extra = " ⚠ trang không có lớp chữ, mở PDF để xem" if s.get("needs_ocr") else ""
+    if s["type"] == "document":
+        where = f"mục **{s['heading']}** (`{s['section_id']}`)"
+        return f"[{label}]({s['url']}), {where}" if s["link_kind"] == "file" else f"{label}, {where} (chưa có link)"
+    unit = "slide" if s.get("label", "").rsplit(" · ", 1)[-1].startswith("slide ") else "trang"
+    page = f"{unit} **{s['pdf_page']}**"
+    extra = ((" ⚠ slide không có chữ, mở file PowerPoint để xem" if unit == "slide"
+              else " ⚠ trang không có lớp chữ, mở PDF để xem") if s.get("needs_ocr") else "")
     if s["link_kind"] == "page":
-        text = f"[{label} · trang {s['pdf_page']}]({s['url']})"
+        text = f"[{label} · {unit} {s['pdf_page']}]({s['url']})"
     elif s["link_kind"] == "file":
         text = f"[{label}]({s['url']}), {page}"
     else:
@@ -198,15 +213,18 @@ def render_markdown(kps: list[dict], ctx: Context, warnings: list[Issue]) -> str
     subject_order = man.get("subject_order")
     subject_label = (f"Môn chuyên môn số {subject_order}: {subject_name}" if subject_order is not None
                      else f"Môn chuyên môn: {subject_name}")
+    has_video = bool(man.get("video"))
     lines = [
         f"# {man['session_label']}: điểm kiến thức (chờ rà soát)",
         "",
-        "> **BẢN NHÁP – cần HCNS kiểm tra trước khi đưa vào app.** Nội dung do AI tóm tắt từ bài giảng, "
-        "slide và giáo trình; mỗi điểm phải được đối chiếu với nguồn ghi bên dưới.",
+        "> **BẢN NHÁP – cần HCNS kiểm tra trước khi đưa vào app.** Nội dung do AI tóm tắt từ "
+        + ("bài giảng, slide và giáo trình" if has_video else "slide, văn bản và giáo trình")
+        + "; mỗi điểm phải được đối chiếu với nguồn ghi bên dưới.",
         "",
         f"- {subject_label}",
         f"- Lộ trình: {programs or '(không có)'}",
-        f"- Khoá: `{man['course_id']}` · Buổi: `{man['session_id']}` ({man['session_label']})",
+        f"- Khoá: `{man['course_id']}` · " + ("Buổi" if has_video else "Gói tài liệu")
+        + f": `{man['session_id']}` ({man['session_label']})",
         f"- Số điểm kiến thức: {len(kps)} · Trạng thái: chờ rà soát (`pending_review`)",
         f"- Cảnh báo khi kiểm tra: {len(warnings)} (xem validation-report.md)",
         "",

@@ -15,6 +15,9 @@ from .timeutil import parse_timestamp
 from .util import resource_json, slugify
 
 
+SLIDE_SUFFIXES = (".pdf", ".pptx")
+
+
 @dataclass(frozen=True)
 class VideoSource:
     source_id: str
@@ -35,6 +38,14 @@ class PdfSource:
     path: Path
     sharepoint_url: str | None
     page_link_template: str | None
+
+
+@dataclass(frozen=True)
+class DocSource:
+    source_id: str
+    title: str
+    path: Path
+    sharepoint_url: str | None
 
 
 @dataclass(frozen=True)
@@ -81,7 +92,7 @@ class Manifest:
     course_name: str | None
     session_id: str
     session_label: str
-    video: VideoSource
+    video: VideoSource | None
     slides: list[PdfSource]
     syllabus: SyllabusSource | None
     related_chapter_ids: list[str]
@@ -90,13 +101,14 @@ class Manifest:
     review: ReviewConfig
     markdown_filename: str
     raw: dict = field(repr=False, default_factory=dict)
+    documents: list[DocSource] = field(default_factory=list)
 
     def public_dict(self) -> dict:
         """Phần manifest ghi vào extract-manifest.json: ID, tên, link, mẫu link.
         Bước validate-export chỉ cần thư mục --out, nên mọi thứ nó cần nằm ở đây."""
         def src(d: dict) -> dict:
             return {k: (str(v) if isinstance(v, Path) else v) for k, v in d.items()}
-        return {
+        out = {
             "manifest_path": str(self.path),
             "subject_id": self.subject_id,
             "subject_name": self.subject_name,
@@ -107,12 +119,15 @@ class Manifest:
             "course_name": self.course_name,
             "session_id": self.session_id,
             "session_label": self.session_label,
-            "video": src(asdict(self.video)),
+            "video": src(asdict(self.video)) if self.video else None,
             "slides": [src(asdict(s)) for s in self.slides],
             "syllabus": src(asdict(self.syllabus)) if self.syllabus else None,
             "related_chapter_ids": self.related_chapter_ids,
             "markdown_filename": self.markdown_filename,
         }
+        if self.documents:      # chỉ thêm khi có: gói cũ giữ nguyên extract_id
+            out["documents"] = [src(asdict(d)) for d in self.documents]
+        return out
 
 
 def _load_raw(path: Path) -> dict:
@@ -131,7 +146,9 @@ def _load_raw(path: Path) -> dict:
 
 def _check_schema(data: dict, path: Path) -> None:
     validator = jsonschema.Draft202012Validator(resource_json("schemas/manifest.schema.json"))
-    errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
+    # Lỗi anyOf ở gốc (gói rỗng) có thông báo riêng, tiếng Việt, trong load_manifest.
+    errors = sorted((e for e in validator.iter_errors(data) if not (e.validator == "anyOf" and not e.absolute_path)),
+                    key=lambda e: list(e.absolute_path))
     if errors:
         lines = [f"  - {'/'.join(str(p) for p in e.absolute_path) or '(gốc)'}: {e.message}" for e in errors]
         raise IngestError(f"Manifest {path} sai cấu trúc:\n" + "\n".join(lines))
@@ -158,27 +175,43 @@ def load_manifest(path: str | Path) -> Manifest:
     def p(value) -> Path | None:
         return (base / value).resolve() if value else None
 
-    v = data["video"]
-    clip = v.get("clip") or {}
-    try:
-        clip_start = parse_timestamp(clip["start"]) if clip.get("start") not in (None, "") else None
-        clip_end = parse_timestamp(clip["end"]) if clip.get("end") not in (None, "") else None
-    except ValueError as exc:
-        raise IngestError(f"video.clip: {exc}") from exc
-    if clip_start is not None and clip_end is not None and clip_end <= clip_start:
-        raise IngestError("video.clip: end phải sau start.")
-    video = VideoSource(
-        source_id=v["source_id"], title=v.get("title") or v["source_id"],
-        path=p(v.get("path")), audio_path=p(v.get("audio_path")), subtitle_path=p(v.get("subtitle_path")),
-        sharepoint_url=v.get("sharepoint_url"), link_template=v.get("link_template"),
-        clip_start_ms=clip_start, clip_end_ms=clip_end,
-    )
-    if not (video.subtitle_path or video.path or video.audio_path):
-        raise IngestError("video: cần subtitle_path, hoặc path / audio_path để chép lời.")
+    if not (data.get("video") or data.get("slides") or data.get("documents") or data.get("syllabus")):
+        raise IngestError("Gói rỗng: cần ít nhất video, slides, documents hoặc syllabus.")
+
+    video = None
+    v = data.get("video")
+    if v:
+        clip = v.get("clip") or {}
+        try:
+            clip_start = parse_timestamp(clip["start"]) if clip.get("start") not in (None, "") else None
+            clip_end = parse_timestamp(clip["end"]) if clip.get("end") not in (None, "") else None
+        except ValueError as exc:
+            raise IngestError(f"video.clip: {exc}") from exc
+        if clip_start is not None and clip_end is not None and clip_end <= clip_start:
+            raise IngestError("video.clip: end phải sau start.")
+        video = VideoSource(
+            source_id=v["source_id"], title=v.get("title") or v["source_id"],
+            path=p(v.get("path")), audio_path=p(v.get("audio_path")), subtitle_path=p(v.get("subtitle_path")),
+            sharepoint_url=v.get("sharepoint_url"), link_template=v.get("link_template"),
+            clip_start_ms=clip_start, clip_end_ms=clip_end,
+        )
+        if not (video.subtitle_path or video.path or video.audio_path):
+            raise IngestError("video: cần subtitle_path, hoặc path / audio_path để chép lời.")
 
     slides = [PdfSource(source_id=s["source_id"], title=s.get("title") or s["source_id"], path=p(s["path"]),
                         sharepoint_url=s.get("sharepoint_url"), page_link_template=s.get("page_link_template"))
               for s in data.get("slides") or []]
+    for s in slides:
+        if s.path.suffix.lower() not in SLIDE_SUFFIXES:
+            raise IngestError(f"slide {s.source_id}: chỉ nhận .pdf hoặc .pptx, không nhận "
+                              f"'{s.path.suffix}' ({s.path.name}).")
+    documents = [DocSource(source_id=d["source_id"], title=d.get("title") or d["source_id"], path=p(d["path"]),
+                           sharepoint_url=d.get("sharepoint_url"))
+                 for d in data.get("documents") or []]
+    for d in documents:
+        if d.path.suffix.lower() != ".docx":
+            raise IngestError(f"documents {d.source_id}: chỉ nhận .docx, không nhận "
+                              f"'{d.path.suffix}' ({d.path.name}).")
     sy = data.get("syllabus")
     syllabus = SyllabusSource(
         source_id=sy["source_id"], title=sy.get("title") or sy["source_id"], path=p(sy["path"]),
@@ -186,7 +219,8 @@ def load_manifest(path: str | Path) -> Manifest:
         page_marker_pattern=sy.get("page_marker_pattern"), chapters=list(sy.get("chapters", [])),
     ) if sy else None
 
-    ids = [video.source_id] + [s.source_id for s in slides] + ([syllabus.source_id] if syllabus else [])
+    ids = ([video.source_id] if video else []) + [s.source_id for s in slides] \
+        + [d.source_id for d in documents] + ([syllabus.source_id] if syllabus else [])
     dupes = sorted({i for i in ids if ids.count(i) > 1})
     if dupes:
         raise IngestError(f"source_id bị trùng: {', '.join(dupes)}")
@@ -206,4 +240,5 @@ def load_manifest(path: str | Path) -> Manifest:
         review=ReviewConfig(**(data.get("review") or {})),
         markdown_filename=md_name,
         raw=data,
+        documents=documents,
     )

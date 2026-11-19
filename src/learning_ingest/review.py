@@ -2,9 +2,11 @@
 
 Không gọi AI nào. Gói ghi vào <out>/review/:
   package.md (hoặc package-part-01-of-NN.md nếu dài quá max_chars_per_part)
-      đủ để dán / tải lên AI: prompt + slide + giáo trình liên quan +
-      danh mục + transcript (chia theo đoạn thời gian, mỗi dòng có segment_id)
+      đủ để dán / tải lên AI: prompt + slide + văn bản (.docx) + giáo trình liên quan +
+      danh mục + transcript (chia theo đoạn thời gian, mỗi dòng có segment_id).
+      Gói tài liệu không có video: không có transcript, luôn một phần.
   prompt.md, transcript.md, slides.md, syllabus.md, catalog.md  từng phần riêng
+  (documents.md khi gói có văn bản .docx)
   ai-output.schema.json                                       schema AI phải theo
   review-manifest.json                                        package_id, các phần, cách chọn giáo trình
 
@@ -30,7 +32,7 @@ from .manifest import Manifest
 from .timeutil import format_clock
 from .util import norm_text, resource_json, resource_text, sha256_json, write_json, write_text
 
-PROMPT_VERSION = "kp-prompt-2"
+PROMPT_VERSION = "kp-prompt-3"
 
 TRANSCRIPT_NOTES = {
     "asr": (
@@ -43,6 +45,8 @@ TRANSCRIPT_NOTES = {
     ),
     "subtitle": "Transcript lấy từ phụ đề có sẵn; vẫn đối chiếu thuật ngữ với slide và giáo trình.",
 }
+NO_TRANSCRIPT_NOTE = "(không có: gói này không có video)"
+NO_TRANSCRIPT_LINE = "_Gói này không có video/transcript._"
 
 EXAMPLE = {
     "schema_version": "1.0",
@@ -159,16 +163,27 @@ def _render_slides(meta: dict, slides: list[dict], index: dict) -> str:
     out = ["## Slide (nội dung theo trang)", ""]
     titles = {s["source_id"]: s.get("title") or s["source_id"] for s in meta["manifest"]["slides"]}
     for sid, info in index.items():
-        out += [f"### Slide `{sid}`: {titles.get(sid, sid)} ({info['page_count']} trang)", ""]
+        unit = "slide" if info.get("unit") == "slide" else "trang"
+        out += [f"### Slide `{sid}`: {titles.get(sid, sid)} ({info['page_count']} {unit})", ""]
         for page in (p for p in slides if p["source_id"] == sid):
-            out.append(f"#### `{sid}` · trang {page['pdf_page']}")
+            out.append(f"#### `{sid}` · {unit} {page['pdf_page']}")
             if page["needs_ocr"]:
-                out.append("[Trang không có lớp chữ hoặc rất ít chữ: cần rà/OCR. Không trích nội dung từ trang này.]")
+                out.append(f"[{unit.capitalize()} không có lớp chữ hoặc rất ít chữ: cần rà/OCR. "
+                           f"Không trích nội dung từ {unit} này.]")
                 if page["text"]:
                     out.append(page["text"])
             else:
                 out.append(page["text"])
             out.append("")
+    return "\n".join(out) + "\n"
+
+
+def _render_documents(meta: dict, docs: list[dict], index: dict) -> str:
+    out = ["## Văn bản (nội dung theo mục)", ""]
+    for sid, info in index.items():
+        out += [f"### Văn bản `{sid}`: {info.get('title') or sid} ({info['section_count']} mục)", ""]
+        for sec in (d for d in docs if d["source_id"] == sid):
+            out += [f"#### `{sid}` · mục `{sec['section_id']}` · {sec['heading']}", sec["text"], ""]
     return "\n".join(out) + "\n"
 
 
@@ -236,26 +251,33 @@ def run_prepare_review(m: Manifest, out_dir: Path, *, max_chars: int | None = No
 
     segments, slides, index, syllabus, catalog = (ex["segments"], ex["slides"], ex["slides_index"],
                                                   ex["syllabus"], ex["catalog"])
-    session_text = "\n".join([s["text"] for s in segments] + [p["text"] for p in slides if not p["needs_ocr"]])
+    docs, docs_index = ex["documents"], ex["documents_index"]
+    session_text = "\n".join([s["text"] for s in segments] + [p["text"] for p in slides if not p["needs_ocr"]]
+                             + [d["text"] for d in docs])
     sy_sections, sy_info = select_syllabus(syllabus, m.related_chapter_ids, session_text,
                                            m.review.syllabus_max_sections, m.review.syllabus_max_chars)
     if m.syllabus and sy_info["method"] == "lexical":
         warnings.append("Phần giáo trình được chọn tự động theo độ trùng từ ngữ; khai báo related_chapter_ids "
                         "nếu HCNS đã biết buổi này dạy chương nào.")
 
-    video = meta["manifest"]["video"]
+    video = meta["manifest"].get("video")
     slides_md = _render_slides(meta, slides, index)
     syllabus_md = _render_syllabus(meta, sy_sections, sy_info)
     catalog_md = _render_catalog(catalog)
     spans = _transcript_windows(segments, m.review.chunk_minutes)
-    windows = [_render_window(video["title"], a, b, segs) for a, b, segs in spans]
+    windows = [_render_window(video["title"], a, b, segs) for a, b, segs in spans] if video else []
+    docs_md = _render_documents(meta, docs, docs_index) if docs else ""
 
     sy = meta["manifest"].get("syllabus")
     pages_found = syllabus.get("pages_found") or []
     slide_lines = "\n".join(
-        f"  - `{sid}`: {info['title']} ({info['page_count']} trang"
-        + (f"; trang cần rà/OCR: {info['pages_needing_ocr']}" if info["pages_needing_ocr"] else "") + ")"
+        f"  - `{sid}`: {info['title']} ({info['page_count']} {'slide' if info.get('unit') == 'slide' else 'trang'}"
+        + (f"; {'slide' if info.get('unit') == 'slide' else 'trang'} cần rà/OCR: {info['pages_needing_ocr']}"
+           if info["pages_needing_ocr"] else "") + ")"
         for sid, info in index.items()) or "  - (không có)"
+    document_lines = "\n".join(
+        f"  - `{sid}`: {info['title']} ({info['section_count']} mục)" for sid, info in docs_index.items()
+    ) or "  - (không có)"
     base_values = {
         "subject_id": m.subject_id,
         "subject_name": m.subject_name or m.subject_id,
@@ -263,10 +285,12 @@ def run_prepare_review(m: Manifest, out_dir: Path, *, max_chars: int | None = No
         "course_id": m.course_id,
         "session_id": m.session_id,
         "session_label": m.session_label,
-        "video_source": f"`{video['source_id']}`: {video['title']}",
-        "video_source_id": video["source_id"],
-        "transcript_note": TRANSCRIPT_NOTES[meta["transcript"]["origin"]],
+        "video_source": f"`{video['source_id']}`: {video['title']}" if video else "(không có)",
+        "video_source_id": video["source_id"] if video else "(không có)",
+        "transcript_note": (TRANSCRIPT_NOTES.get(meta["transcript"]["origin"], NO_TRANSCRIPT_NOTE)
+                            if video else NO_TRANSCRIPT_NOTE),
         "slide_sources": slide_lines,
+        "document_sources": document_lines,
         "syllabus_source": (f"`{sy['source_id']}`: {sy['title']}"
                             + (f" (mốc trang có trong bài: {pages_found[0]}–{pages_found[-1]})" if pages_found
                                else " (giáo trình không có mốc trang: không trích nguồn giáo trình theo trang)"))
@@ -287,11 +311,11 @@ def run_prepare_review(m: Manifest, out_dir: Path, *, max_chars: int | None = No
         return _fill(template, base_values | {"package_id": package_id, "part_number": i, "part_count": n,
                                               "part_note": part_note})
 
-    shared = "\n".join([slides_md, syllabus_md, catalog_md])
+    shared = "\n".join([slides_md, *([docs_md] if docs_md else []), syllabus_md, catalog_md])
     probe = prompt("pkg-000000000000", 1, 1, "")
     fixed = len(probe) + len(shared) + 200
     if fixed >= budget:
-        warnings.append(f"Riêng prompt + slide + giáo trình + danh mục đã {fixed} ký tự, vượt max_chars_per_part "
+        warnings.append(f"Riêng prompt + slide + văn bản + giáo trình + danh mục đã {fixed} ký tự, vượt max_chars_per_part "
                         f"{budget}: mỗi phần sẽ dài hơn giới hạn.")
     groups: list[list[int]] = [[]]
     used = fixed
@@ -310,16 +334,19 @@ def run_prepare_review(m: Manifest, out_dir: Path, *, max_chars: int | None = No
     parts_text, part_info = [], []
     for k, idx in enumerate(groups, start=1):
         texts = [windows[i] for i in idx]
-        lo, hi = spans[idx[0]][0], spans[idx[-1]][1]
+        lo, hi = (spans[idx[0]][0], spans[idx[-1]][1]) if idx else (None, None)
         note = ""
         if n > 1:
             note = (f"**Gói chia {n} phần.** Phần này chứa transcript {format_clock(lo)}–{format_clock(hi)}. "
                     "Chỉ tạo điểm kiến thức có nguồn video nằm trong phần này; slide và giáo trình dùng chung. "
                     "Trả về một JSON riêng cho phần này, cùng package_id.")
+        transcript_block = (["## Transcript (mã đoạn | mốc thời gian theo video gốc)", "", *texts] if video
+                            else [NO_TRANSCRIPT_LINE, ""])
         body = "\n".join([prompt(package_id, k, n, note), "---", "", "# Dữ liệu buổi học", "",
-                          shared, "## Transcript (mã đoạn | mốc thời gian theo video gốc)", "", *texts])
+                          shared, *transcript_block])
         parts_text.append(body)
-        part_info.append({"part": k, "transcript_from": format_clock(lo), "transcript_to": format_clock(hi),
+        part_info.append({"part": k, "transcript_from": format_clock(lo) if idx else None,
+                          "transcript_to": format_clock(hi) if idx else None,
                           "windows": len(idx), "chars": len(body)})
 
     review_dir = out_dir / "review"
@@ -333,8 +360,13 @@ def run_prepare_review(m: Manifest, out_dir: Path, *, max_chars: int | None = No
     for name, text in zip(names, parts_text):
         write_text(review_dir / name, text)
     write_text(review_dir / "prompt.md", prompt(package_id, 1, n, ""))
-    write_text(review_dir / "transcript.md", "# Transcript\n\n" + "\n".join(windows))
+    write_text(review_dir / "transcript.md", "# Transcript\n\n" + ("\n".join(windows) if video else NO_TRANSCRIPT_LINE + "\n"))
     write_text(review_dir / "slides.md", slides_md)
+    stale_docs = review_dir / "documents.md"
+    if docs_md:
+        write_text(stale_docs, docs_md)
+    else:
+        stale_docs.unlink(missing_ok=True)
     write_text(review_dir / "syllabus.md", syllabus_md)
     write_text(review_dir / "catalog.md", catalog_md)
     write_json(review_dir / "ai-output.schema.json", resource_json("schemas/ai-output.schema.json"))

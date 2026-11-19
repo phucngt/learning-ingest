@@ -7,7 +7,8 @@ JSON và lý do.
 Lỗi:
   - JSON hỏng, sai schema (thiếu trường, sai kiểu, review_status khác pending_review)
   - subject_id / session_id khác manifest
-  - nguồn: source_id không có / sai loại, segment_id không có trong transcript,
+  - nguồn: source_id không có / sai loại (kể cả type video khi gói không có video),
+    segment_id không có trong transcript, section_id không có trong văn bản (.docx),
     start_ms / end_ms lệch segment quá TOLERANCE_MS, trang slide ngoài số trang,
     trang giáo trình không có trong bài, section_id không có
   - chapter_id không có trong giáo trình; chapter_id null mà không ghi lý do
@@ -53,9 +54,11 @@ class Context:
     meta: dict
     subject_id: str
     session_id: str
-    video_id: str
+    video_id: str | None
     segments: dict[str, dict]
     slides: dict[str, dict]            # source_id -> {page_count, needs_ocr: set}
+    documents: dict[str, set[str]]     # source_id -> các section_id
+    document_rows: list[dict]
     syllabus_id: str | None
     syllabus_pages: set[int]
     syllabus_page_count: int | None
@@ -80,7 +83,7 @@ class Context:
                 needs[p["source_id"]].add(p["pdf_page"])
         for sid, info in ex["slides_index"].items():
             slides[sid] = {"page_count": info["page_count"], "needs_ocr": needs.get(sid, set()),
-                           "title": info.get("title") or sid}
+                           "title": info.get("title") or sid, "unit": info.get("unit", "page")}
         sy = ex["syllabus"]
         page_chapters: dict[int, set] = {}
         for s in sy.get("sections") or []:
@@ -89,9 +92,12 @@ class Context:
         review_meta = Path(out_dir) / "review" / "review-manifest.json"
         return cls(
             meta=meta, subject_id=man["subject_id"], session_id=man["session_id"],
-            video_id=man["video"]["source_id"],
+            video_id=(man.get("video") or {}).get("source_id"),
             segments={s["segment_id"]: s for s in ex["segments"]},
             slides=slides,
+            documents={sid: {d["section_id"] for d in ex["documents"] if d["source_id"] == sid}
+                       for sid in ex["documents_index"]},
+            document_rows=ex["documents"],
             syllabus_id=(man.get("syllabus") or {}).get("source_id"),
             syllabus_pages=set(sy.get("pages_found") or []),
             syllabus_page_count=sy.get("pdf_page_count"),
@@ -171,6 +177,10 @@ class _Checker:
         ctx = self.ctx
         kind, sid = src["type"], src["source_id"]
         if kind == "video":
+            if ctx.video_id is None:
+                self.issue("error", "source_id_unknown", f"{path}.source_id",
+                           "Gói này không có video: không trích nguồn type 'video'.")
+                return set()
             if sid != ctx.video_id:
                 self.issue("error", "source_id_unknown", f"{path}.source_id",
                            f"'{sid}' không phải video của buổi (video là '{ctx.video_id}').")
@@ -198,12 +208,23 @@ class _Checker:
                 self.issue("error", "source_id_unknown", f"{path}.source_id", f"Không có slide '{sid}'{hint}.")
                 return set()
             page = src["pdf_page"]
+            unit = "slide" if slide.get("unit") == "slide" else "trang"
             if page > slide["page_count"]:
                 self.issue("error", "page_out_of_range", f"{path}.pdf_page",
-                           f"Slide '{sid}' chỉ có {slide['page_count']} trang, không có trang {page}.")
+                           f"Slide '{sid}' chỉ có {slide['page_count']} {unit}, không có {unit} {page}.")
             elif page in slide["needs_ocr"]:
                 self.issue("warning", "page_needs_ocr", f"{path}.pdf_page",
-                           f"Trang {page} của '{sid}' không có lớp chữ: HCNS cần mở PDF xem trang này.")
+                           (f"Slide {page} của '{sid}' không có chữ: HCNS cần mở file PowerPoint xem slide này."
+                            if unit == "slide" else
+                            f"Trang {page} của '{sid}' không có lớp chữ: HCNS cần mở PDF xem trang này."))
+            return set()
+        if kind == "document":
+            sections = ctx.documents.get(sid)
+            if sections is None:
+                self.issue("error", "source_id_unknown", f"{path}.source_id", f"Không có văn bản '{sid}'.")
+            elif src["section_id"] not in sections:
+                self.issue("error", "section_unknown", f"{path}.section_id",
+                           f"section_id '{src['section_id']}' không có trong văn bản '{sid}'.")
             return set()
         # syllabus
         if ctx.syllabus_id is None:
