@@ -38,6 +38,7 @@ class PdfSource:
     path: Path
     sharepoint_url: str | None
     page_link_template: str | None
+    ocr_path: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -107,7 +108,8 @@ class Manifest:
         """Phần manifest ghi vào extract-manifest.json: ID, tên, link, mẫu link.
         Bước validate-export chỉ cần thư mục --out, nên mọi thứ nó cần nằm ở đây."""
         def src(d: dict) -> dict:
-            return {k: (str(v) if isinstance(v, Path) else v) for k, v in d.items()}
+            return {k: (str(v) if isinstance(v, Path) else v) for k, v in d.items()
+                    if k != "ocr_path" or v is not None}
         out = {
             "manifest_path": str(self.path),
             "subject_id": self.subject_id,
@@ -199,7 +201,8 @@ def load_manifest(path: str | Path) -> Manifest:
             raise IngestError("video: cần subtitle_path, hoặc path / audio_path để chép lời.")
 
     slides = [PdfSource(source_id=s["source_id"], title=s.get("title") or s["source_id"], path=p(s["path"]),
-                        sharepoint_url=s.get("sharepoint_url"), page_link_template=s.get("page_link_template"))
+                        sharepoint_url=s.get("sharepoint_url"), page_link_template=s.get("page_link_template"),
+                        ocr_path=p(s.get("ocr_path")))
               for s in data.get("slides") or []]
     for s in slides:
         if s.path.suffix.lower() not in SLIDE_SUFFIXES:

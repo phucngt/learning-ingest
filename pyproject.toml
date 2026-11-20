@@ -13,6 +13,7 @@ dependencies = [
     "pypdf>=4.0",
     "PyYAML>=6.0",
     "jsonschema>=4.18",
+    "certifi>=2024.2",
 ]
 
 [project.optional-dependencies]

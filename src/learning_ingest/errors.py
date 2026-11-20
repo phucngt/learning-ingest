@@ -14,3 +14,9 @@ class MissingDependency(IngestError):
     """Thiếu thư viện tuỳ chọn (ví dụ faster-whisper). Mã thoát 3."""
 
     exit_code = 3
+
+
+class RemoteError(IngestError):
+    """Không kết nối được hoặc dịch vụ AI trả lỗi. Mã thoát 4."""
+
+    exit_code = 4

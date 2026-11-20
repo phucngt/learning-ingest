@@ -104,6 +104,8 @@ class _Resolver:
                     "pdf_page": page}
             if kind == "slide":
                 out["needs_ocr"] = page in self.ctx.slides[sid]["needs_ocr"]
+                if page in self.ctx.slides[sid]["from_ocr"]:
+                    out["label"] += " (chữ OCR)"
             else:
                 out["section_id"] = src.get("section_id")
         if src.get("quote"):

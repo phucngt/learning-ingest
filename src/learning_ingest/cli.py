@@ -3,10 +3,15 @@
   learning-ingest subjects
   learning-ingest extract          --manifest M --out D [--clip-start T] [--clip-end T] [--model X] [--no-cache]
   learning-ingest prepare-review   --manifest M --out D [--max-chars N]
+  learning-ingest draft            --out D [--provider fpt] [--model M] [--part K] [--force] [--dry-run] [--timeout SEC] [--env-file PATH]
   learning-ingest validate-export  --input ai-output.json [--input part2.json] --out D
 
-Mã thoát: 0 xong; 1 đầu ra AI không hợp lệ (chưa xuất); 2 cấu hình / dữ liệu
-đầu vào sai; 3 thiếu thư viện tuỳ chọn.
+Mã thoát
+  0 Hoàn thành.
+  1 Phản hồi AI không dùng được hoặc đầu ra không qua kiểm tra.
+  2 Cấu hình hoặc dữ liệu đầu vào không hợp lệ.
+  3 Thiếu thư viện tuỳ chọn.
+  4 Lỗi kết nối hoặc dịch vụ AI.
 """
 from __future__ import annotations
 
@@ -17,6 +22,7 @@ from pathlib import Path
 
 from . import __version__
 from .errors import IngestError
+from .llm import PROVIDERS
 from .timeutil import parse_timestamp
 
 
@@ -44,17 +50,27 @@ def build_parser() -> argparse.ArgumentParser:
 
     e = sub.add_parser("extract", help="Trích transcript, slide theo trang, giáo trình.")
     e.add_argument("--manifest", required=True, type=Path)
-    e.add_argument("--out", required=True, type=Path, help="Thư mục làm việc của buổi (dùng chung cho 3 lệnh).")
+    e.add_argument("--out", required=True, type=Path, help="Thư mục làm việc chung của buổi.")
     e.add_argument("--cache-dir", type=Path, help="Mặc định <out>/.cache")
     e.add_argument("--clip-start", type=_timestamp, help="Chạy thử từ mốc này, ví dụ 00:10:00")
     e.add_argument("--clip-end", type=_timestamp, help="Chạy thử tới mốc này, ví dụ 00:20:00")
     e.add_argument("--model", help="Ghi đè transcription.model, ví dụ small, medium, large-v3")
     e.add_argument("--no-cache", action="store_true", help="Bỏ qua cache, làm lại từ đầu")
 
-    r = sub.add_parser("prepare-review", help="Xuất gói đầu vào cho AI được công ty duyệt.")
+    r = sub.add_parser("prepare-review", help="Tạo gói rà soát để gửi cho AI.")
     r.add_argument("--manifest", required=True, type=Path)
     r.add_argument("--out", required=True, type=Path)
     r.add_argument("--max-chars", type=int, help="Ghi đè review.max_chars_per_part")
+
+    d = sub.add_parser("draft", help="Gửi gói rà soát đến dịch vụ AI đã cấu hình để soạn nháp.")
+    d.add_argument("--out", required=True, type=Path, help="Thư mục làm việc đã chạy prepare-review.")
+    d.add_argument("--provider", choices=PROVIDERS, default="fpt", help="Dịch vụ AI, mặc định fpt.")
+    d.add_argument("--model", help="Ghi đè model trong cấu hình.")
+    d.add_argument("--part", type=int, help="Chỉ soạn nháp phần này, đánh số từ 1.")
+    d.add_argument("--force", action="store_true", help="Cho phép ghi đè tệp JSON đầu ra.")
+    d.add_argument("--dry-run", action="store_true", help="Xem cấu hình và các phần sẽ gửi, không gọi API hay ghi tệp.")
+    d.add_argument("--timeout", type=float, help="Thời gian chờ cho mỗi yêu cầu, tính bằng giây.")
+    d.add_argument("--env-file", type=Path, default=Path(".env"), help="Tệp cấu hình, mặc định .env.")
 
     v = sub.add_parser("validate-export", help="Kiểm tra đầu ra JSON của AI rồi xuất gói import.")
     v.add_argument("--input", required=True, type=Path, action="append",
@@ -119,8 +135,16 @@ def _cmd_review(args) -> int:
           f"{'chương HCNS khai báo' if res.syllabus_method == 'declared' else 'độ trùng từ ngữ'}")
     for w in res.warnings:
         print(f"  ! {w}")
-    print("Đưa từng file package*.md vào AI được công ty duyệt; lưu JSON trả về rồi chạy validate-export.")
+    print("Chạy draft để gửi gói đến dịch vụ AI đã cấu hình, hoặc dán từng file package*.md vào AI "
+          "và lưu JSON trả về. Sau đó chạy validate-export.")
     return 0
+
+
+def _cmd_draft(args) -> int:
+    from .draft import run_draft
+
+    return run_draft(args.out, provider=args.provider, model=args.model, part=args.part, force=args.force,
+                     dry_run=args.dry_run, timeout=args.timeout, env_file=args.env_file)
 
 
 def _cmd_validate(args) -> int:
@@ -143,7 +167,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return {"subjects": _cmd_subjects, "extract": _cmd_extract, "prepare-review": _cmd_review,
-                "validate-export": _cmd_validate}[args.command](args)
+                "draft": _cmd_draft, "validate-export": _cmd_validate}[args.command](args)
     except IngestError as exc:
         print(f"Lỗi: {exc}", file=sys.stderr)
         return exc.exit_code

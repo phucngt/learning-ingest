@@ -1,4 +1,4 @@
-"""Lệnh prepare-review: dữ liệu đã trích -> gói đầu vào cho AI được công ty duyệt.
+"""Lệnh prepare-review tạo gói rà soát cho AI từ dữ liệu đã trích.
 
 Không gọi AI nào. Gói ghi vào <out>/review/:
   package.md (hoặc package-part-01-of-NN.md nếu dài quá max_chars_per_part)
@@ -173,6 +173,11 @@ def _render_slides(meta: dict, slides: list[dict], index: dict) -> str:
                 if page["text"]:
                     out.append(page["text"])
             else:
+                if page.get("text_origin") == "ocr":
+                    out.append(f"[Chữ của {unit} này lấy từ OCR, có thể sai chữ hoặc số. "
+                               f"Số liệu, thời hạn, điều luật trích từ {unit} này phải có verification_flags. "
+                               f'Trích nguồn {unit} này bằng "pdf_page": {page["pdf_page"]}, '
+                               "kể cả khi chữ OCR ghi số slide khác.]")
                 out.append(page["text"])
             out.append("")
     return "\n".join(out) + "\n"
@@ -273,7 +278,9 @@ def run_prepare_review(m: Manifest, out_dir: Path, *, max_chars: int | None = No
     slide_lines = "\n".join(
         f"  - `{sid}`: {info['title']} ({info['page_count']} {'slide' if info.get('unit') == 'slide' else 'trang'}"
         + (f"; {'slide' if info.get('unit') == 'slide' else 'trang'} cần rà/OCR: {info['pages_needing_ocr']}"
-           if info["pages_needing_ocr"] else "") + ")"
+           if info["pages_needing_ocr"] else "")
+        + (f"; {'slide' if info.get('unit') == 'slide' else 'trang'} lấy chữ từ OCR: {info['pages_from_ocr']}"
+           if info.get("pages_from_ocr") else "") + ")"
         for sid, info in index.items()) or "  - (không có)"
     document_lines = "\n".join(
         f"  - `{sid}`: {info['title']} ({info['section_count']} mục)" for sid, info in docs_index.items()

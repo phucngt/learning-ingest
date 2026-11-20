@@ -157,6 +157,7 @@
         "source_id": { "$ref": "#/$defs/id" },
         "title": { "type": ["string", "null"] },
         "path": { "type": "string" },
+        "ocr_path": { "type": ["string", "null"], "description": "Markdown OCR cho trang/slide scan, mốc '## Trang PDF N' hoặc <!-- page: N -->." },
         "sharepoint_url": { "type": ["string", "null"] },
         "page_link_template": { "type": ["string", "null"] }
       }

@@ -27,7 +27,7 @@ from .cache import Cache
 from .errors import IngestError
 from .manifest import Manifest
 from .documents import DOCX_EXTRACTOR_VERSION, extract_docx
-from .slides import EXTRACTOR_VERSION, PPTX_EXTRACTOR_VERSION, extract_pdf, extract_pptx
+from .slides import EXTRACTOR_VERSION, PPTX_EXTRACTOR_VERSION, extract_pdf, extract_pptx, read_slide_ocr
 from .syllabus import parse_syllabus
 from .transcript import Segment, build_segments, clip_cues, read_subtitles, write_transcript
 from .util import read_json, sha256_json, write_json, write_jsonl
@@ -157,7 +157,7 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
         (out_dir / "transcript.vtt").unlink(missing_ok=True)
 
     # 2. slide
-    slide_rows, slide_index, inputs_slides = [], {}, {}
+    slide_rows, slide_index, inputs_slides, inputs_slides_ocr = [], {}, {}, {}
     for s in m.slides:
         if not s.path.exists():
             raise IngestError(f"Không thấy slide {s.source_id}: {s.path}")
@@ -171,11 +171,35 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
         if doc is None:
             doc = extractor(s.path, s.source_id)
             cache.put(kind, key, doc)
-        slide_rows += doc["pages"]
-        ocr = [p["pdf_page"] for p in doc["pages"] if p["needs_ocr"]]
+        pages = doc["pages"]
+        if s.ocr_path is not None:
+            ocr_text, inputs_slides_ocr[s.source_id] = read_slide_ocr(s.ocr_path, s.source_id, doc["page_count"])
+            unit_name = "slide" if unit == "slide" else "trang"
+            filename = s.ocr_path.name
+            pages, ignored = [], []
+            # Chỉ bổ sung OCR vào kết quả xuất, giữ cache theo slide gốc.
+            for page in doc["pages"]:
+                number = page["pdf_page"]
+                text = ocr_text.get(number)
+                if page["needs_ocr"] and text:
+                    page = page | {
+                        "text": text, "char_count": sum(not ch.isspace() for ch in text), "needs_ocr": False,
+                        "text_origin": "ocr", "note": f"chữ lấy từ OCR ({filename}), cần đối chiếu ảnh {unit_name}",
+                    }
+                elif not page["needs_ocr"] and number in ocr_text:
+                    ignored.append(number)
+                pages.append(page)
+            if ignored:
+                warnings.append(f"{s.source_id}: bỏ qua mốc OCR trong {filename} cho {unit_name} đã có chữ: {ignored}")
+        slide_rows += pages
+        ocr = [p["pdf_page"] for p in pages if p["needs_ocr"]]
         slide_index[s.source_id] = {"title": s.title, "page_count": doc["page_count"], "pages_needing_ocr": ocr,
                                     "unit": unit}
         inputs_slides[s.source_id] = sha
+        if s.ocr_path is not None:
+            slide_index[s.source_id]["pages_from_ocr"] = [p["pdf_page"] for p in pages if p.get("text_origin") == "ocr"]
+            if ocr:
+                warnings.append(f"{s.source_id}: {unit_name} chưa có mốc hoặc nội dung OCR trong {filename}: {ocr}")
         if ocr:
             what = "slide thiếu chữ" if unit == "slide" else "trang thiếu lớp chữ"
             warnings.append(f"{s.source_id}: {len(ocr)} {what}, cần rà/OCR: {ocr}")
@@ -234,6 +258,8 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
         hashed["transcript"] = [s.to_row(v.source_id) for s in segments]
     if doc_rows:
         hashed["documents"] = doc_rows
+    if inputs_slides_ocr:
+        hashed["slides_ocr"] = inputs_slides_ocr
     extract_id = "ext-" + sha256_json(hashed)[:16]
     write_json(out_dir / "extract-manifest.json", {
         "tool": "learning-ingest",
@@ -243,6 +269,7 @@ def run_extract(m: Manifest, out_dir: Path, cache_dir: Path | None = None, *,
         "manifest": m.public_dict(),
         "inputs": {
             "slides": inputs_slides,
+            **({"slides_ocr": inputs_slides_ocr} if inputs_slides_ocr else {}),
             **({"documents": inputs_docs} if inputs_docs else {}),
             "syllabus": syllabus_sha,
             "catalog": cache.file_sha256(m.catalog_path) if m.catalog_path else None,

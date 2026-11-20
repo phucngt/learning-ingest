@@ -2,7 +2,7 @@
 
 Trang có ít hơn MIN_TEXT_CHARS ký tự (không tính khoảng trắng) được đánh dấu
 needs_ocr: thường là slide chỉ có hình / bản scan, cần người rà hoặc OCR sau.
-MVP không tự OCR.
+Có thể bổ sung chữ từ Markdown OCR có sẵn.
 """
 from __future__ import annotations
 
@@ -10,9 +10,12 @@ import re
 from pathlib import Path
 
 from .errors import IngestError, MissingDependency
+from .syllabus import DEFAULT_PAGE_MARKERS
+from .util import sha256_bytes
 
 EXTRACTOR_VERSION = "pypdf-text-1"
 MIN_TEXT_CHARS = 20
+_OCR_MARKERS = [re.compile(pattern, re.IGNORECASE) for pattern in DEFAULT_PAGE_MARKERS]
 
 
 def _clean(text: str) -> str:
@@ -26,6 +29,43 @@ def _clean(text: str) -> str:
             out.append("")
             blank = True
     return "\n".join(out).strip()
+
+
+def read_slide_ocr(path: Path, source_id: str, page_count: int) -> tuple[dict[int, str], str]:
+    """Đọc chữ OCR theo số trang và tính hash từ cùng nội dung file."""
+    label = f"Slide {source_id}, OCR {path.name}"
+    try:
+        raw = path.read_bytes()
+        text = raw.decode("utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
+    except FileNotFoundError:
+        raise IngestError(f"{label}: không thấy file.") from None
+    except (OSError, UnicodeDecodeError) as exc:
+        raise IngestError(f"{label}: không đọc được file ({exc}).") from exc
+
+    chunks: dict[int, list[str]] = {}
+    current: list[str] | None = None
+    for line in text.split("\n"):
+        matches = sorted((m for marker in _OCR_MARKERS for m in marker.finditer(line)),
+                         key=lambda m: m.start())
+        start = 0
+        for match in matches:
+            if current is not None:
+                current.append(line[start:match.start()])
+            try:
+                number = int(match.group(1))
+            except ValueError:
+                raise IngestError(f"{label}: số tại mốc trang vượt phạm vi 1–{page_count}.") from None
+            if not 1 <= number <= page_count:
+                raise IngestError(f"{label}: mốc trang {number} ngoài phạm vi 1–{page_count}.")
+            if number in chunks:
+                raise IngestError(f"{label}: trùng mốc trang {number}.")
+            current = chunks[number] = []
+            start = match.end()
+        if current is not None:
+            current.append(line[start:])
+    if not chunks:
+        raise IngestError(f"{label}: không có mốc trang.")
+    return {number: _clean("\n".join(lines)) for number, lines in chunks.items()}, sha256_bytes(raw)
 
 
 def extract_pdf(path: Path, source_id: str) -> dict:

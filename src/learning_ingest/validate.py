@@ -77,12 +77,15 @@ class Context:
         man = meta["manifest"]
         slides = {}
         needs = {}
+        from_ocr = {}
         for p in ex["slides"]:
-            needs.setdefault(p["source_id"], set())
             if p["needs_ocr"]:
-                needs[p["source_id"]].add(p["pdf_page"])
+                needs.setdefault(p["source_id"], set()).add(p["pdf_page"])
+            if p.get("text_origin") == "ocr":
+                from_ocr.setdefault(p["source_id"], set()).add(p["pdf_page"])
         for sid, info in ex["slides_index"].items():
             slides[sid] = {"page_count": info["page_count"], "needs_ocr": needs.get(sid, set()),
+                           "from_ocr": from_ocr.get(sid, set()),
                            "title": info.get("title") or sid, "unit": info.get("unit", "page")}
         sy = ex["syllabus"]
         page_chapters: dict[int, set] = {}
